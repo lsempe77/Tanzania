@@ -1,28 +1,30 @@
 ---
 title: "Statistical analysis of Educational data of Tanzania"
-subtitle: Consultancy for Mokoro - World Bank evaluation project
-date: "`r format(Sys.time(), '%d %B %Y')`"
 author:
 - Lucas Sempé^[Univesidad Católica San Pablo]
 - Paul Clist^[University of East Anglia]
-fontsize: 9pt
+date: "`r format(Sys.time(), '%d %B %Y')`"
 output:
   bookdown::word_document2:
-      number_sections: true
-      toc: no 
-      fig_caption: yes
+    number_sections: yes
+    toc: no
+    fig_caption: yes
   bookdown::pdf_document2:
-      latex_engine: xelatex 
-      number_sections: true
-      toc: no 
-      fig_caption: yes
+    latex_engine: xelatex
+    number_sections: yes
+    toc: no
+    fig_caption: yes
   pdf_document: default
   html_notebook: default
   html_document:
     df_print: paged
+  word_document:
+    toc: no
+fontsize: 9pt
+subtitle: Consultancy for Mokoro - World Bank evaluation project
 editor_options:
   chunk_output_type: console
-always_allow_html: true
+always_allow_html: yes
 header-includes:
 - \usepackage{pdflscape}
 - \newcommand{\blandscape}{\begin{landscape}}
@@ -58,8 +60,6 @@ library(ggthemes)
 library(haven)
 
 options(scipen = 2)
-
-setwd("C:/Users/LUCAS/Desktop/Tanzania")
 
 ```
 
@@ -110,14 +110,14 @@ data on educational system. Data ranges from 2015-2019. Not all data has complet
 
 - There is no available data for DLI 6.2. Considering learning outcomes are a desired impact of an educational system with different factors influencing its results, we use the aggregated DLI resources to assess its association to learning outcomes.
 
-```{r, lgacontrols}
+```{r, lgacontrols, cache=T}
 
 lgacontrols <- read_excel("C:/Users/LUCAS/Desktop/Tanzania/lgacontrols.xlsx")
 
 #variable.names(lgacontrols)
 ```
 
-```{r, payments, warning=F,message=F}
+```{r, payments, warning=F,message=F, cache=T}
 
 payments_alldlrs <- read_excel("C:/Users/LUCAS/Desktop/Tanzania/ptr/payments-alldlrs.xlsx")
 
@@ -174,7 +174,8 @@ As DLR 4 payments are linked to reaching the the acceptable cutoff on PTR, there
 
 ```{r, sum1, warning=F,message=F, cache=T}
 
-ptr_2019_2017_2015 <- read_excel("ptr/ptr_2019_2015_w_pbr_final.xlsx", 
+
+ptr_2019_2017_2015 <- read_excel("C:/Users/LUCAS/Desktop/Tanzania/Tanzania.git/ptr_2019_2015_w_pbr_final.xlsx", 
                                  sheet = "ptr_2019_2015", 
                                  col_types = c("text", 
                                      "numeric", "numeric", "text", "text", 
@@ -237,7 +238,7 @@ pander(sum1,
 
 Figure \@ref(fig:quartiles) shows school-level data for pupil-teacher ratios across years 2015, 2017 and 2019. Colours represent each regions. It is possible to observe a wide interquartile range in all years, a significant number of outliers on the upper bound and also values close to 0. This suggests the need to address data quality systematically.
 
-``` {r,quartiles,fig.cap="PTR"}
+``` {r,quartiles,fig.cap="PTR", cache=T}
 
 #ptr_2019_2017_2015 %>% group_by(year)%>%  filter(`Total Primary` <= 0) %>% summarise(counted = n())
 
@@ -280,7 +281,7 @@ The criteria to exclude observations relies on the previous outliers analysis as
 
 By doing this, we  lose 8.3% of the observations and won't affect statistical power (51,786 to 47,778 observations), having a balanced panel of 15,926 schools. 
 
-```{r, plotptr3}
+```{r, plotptr3, cache=T}
 
 PTR<-  ptr_2019_2017_2015 %>% 
   filter(!(`Total Primary` <= 0 | `Total Teachers` <=0  | PTR <= 0)) %>%
@@ -338,7 +339,7 @@ ptr_2019_2017_2015 %>%
 
 Table \@ref(tab:ptrout) displays summary statistics such as mean, median and standard deviation for PTR after discarding outliers across years, where all statistics shows a consistent growth over time. While mean values are not affected after removing schools, the median and standard deviations changed significantly. Additionally, while number of students increased over time, the same did not happened to the number of teachers in the same proportion.
 
-```{r, ptrout}
+```{r, ptrout, cache=T}
 
 ptrout<-PTR%>% group_by(year)%>% 
   summarise(schools = n_distinct(id),
@@ -395,7 +396,7 @@ colnames(ptr_2019_2015.anova)[2]<-"year.ptr"
 
 School PTR across councils have deteriorated between 2015 and 2019. The overall average of schools with a PTR over 50 (which was the standard in 2015) growths from 31% in 2015, 43% in 2017 and 56% in 2019. While the share dispersion measured by the standard deviation, also increases form 19% to 26% in the period (see Table \@ref(tab:share)).
 
-``` {r, share, warning=F,message=F}
+``` {r, share, warning=F,message=F, cache=T}
 
 share<-ptr_2019_2015.anova%>%group_by(year.ptr)%>%
   summarise(Median= median(share.sch.not.accept),
@@ -416,7 +417,7 @@ Figure \@ref(fig:plotprt) shows the average PTR per council and the ideal distri
 
 There is a strong negative linear correlation between PTR and ideal teacher surplus (-.70, -.80 and -.87) across years (see Table \@ref(tab:cora)). Both tails, in the negative and positive side, show different patterns. With a PTR less than 50, found in the left upper quadrant (green), there is a larger variance between councils in terms of teachers surplus, which suggests different levels of efficiency. However, the majority of councils on yellow and red areas could be considered efficient in terms of teachers allocation due to the lack of teachers' surplus. This is also confirmed by the strong correlation (.95 across all years) between average PTR and share of schools with PTR above 50 per council (see Table \@ref(tab:cora2)).
 
-``` {r, plotptr, fig.cap="Average PTR and Ideal teacher surplus"}
+``` {r, plotptr, fig.cap="Average PTR and Ideal teacher surplus", cache=T}
 
 ptr15<-ptr_2019_2015.anova %>% filter(year.ptr==2015)%>%
   ggplot()+
@@ -473,7 +474,7 @@ grid.arrange(ptr15,ptr17,ptr19,ncol=1)
 
 
 
-``` {r, cora}
+``` {r, cora, cache=T}
 
 cora<-ptr_2019_2015.anova%>%group_by(year.ptr)%>%
   do(cor=cor(.$ptr.c,.$teach.surplus.ideal.distr,use="pairwise"))
@@ -485,7 +486,7 @@ pander(cora,digits=2,
 ```
 
 
-``` {r, cora2, warning=F,message=F}
+``` {r, cora2, warning=F,message=F, cache=T}
 
 cora2<-ptr_2019_2015.anova%>%group_by(year.ptr)%>%
   do(cor=cor(.$ptr.c,.$share.sch.not.accept,use="pairwise"))
@@ -495,7 +496,7 @@ pander(cora2,style = "simple",digits=2,
 ```
 
 
-``` {r, nope}
+``` {r, nope, cache=T}
 
 #ptr_2019_2015.anova %>% #filter(year.ptr==2015)%>%   ggplot()+ geom_point(aes(x=ptr.c,y=share.sch.not.accept,group=year.ptr,                colour=as.factor(year.ptr))) +
 #scale_color_manual(values = c("2015" = "darkblue", "2019" = "darkorange"))+         ggtitle("Average PTR and Share of schools PTR > 50")+  scale_y_continuous(breaks = seq(0,1,.2))+xlab("average ptr per council")+  ylab("fraction of schools over PTR > 50")+  scale_x_continuous(breaks = seq(20,80,10))+
@@ -614,7 +615,7 @@ stargazer(fit4,fit5,fit6,fit7, type="text", ci=T)
 
 
 
-```{r, prepanova}
+```{r, prepanova, cache=T}
 
 ### Council level
 
@@ -771,7 +772,7 @@ pander(ta1,style="simple",digits=2,
 
 ### PSLE
 
-```{r, psle}
+```{r, psle, cache=T}
 
 PSLE<-nationalexams %>%filter(exam=="PSLE")  %>%
   left_join(lgacontrols) %>%
@@ -799,7 +800,7 @@ colnames(PSLE)[7]<-"score"
 
 We follow the same approach to detect outliers than before, excluding observations with more or less than 3 zscores from mean and differences within schools on time larger than 3SD. Figure \@(fig:psle2) shows the relatively small proportion of excluded observations.
 
-```{r, psle2}
+```{r, psle2, cache=T}
 
 PSLE2<-  PSLE %>% 
     group_by(year)%>%
@@ -835,7 +836,7 @@ PSLE %>%
 
 Figure \@ref(fig:pslecouncilmoney) shows the association  over time between DLR and PSLE scores per year. There is no clear slope suggesting an association between both variables, which is also assessed through a mixed-effects regression model allowing for random intercepts for councils and random slopes for years, where we fail to reject the hypothesis of no association between them. After subsampling to years 2017-2019 we also did not find association.
 
-``` {r, pslecouncilmoney, fig.cap="PSLE average of councils grouped by overall DLR received"}
+``` {r, pslecouncilmoney, cache=T, fig.cap="PSLE average of councils grouped by overall DLR received"}
 
 
 t<-PSLE2 %>% 
@@ -858,7 +859,7 @@ PSLE2 %>% group_by(council,year) %>%filter(year>2015)%>%
 
 ```
 
-``` {r,fit16}
+``` {r,fit16, cache=T}
 
 PSLE2$council<-as.factor(PSLE2$council)
 PSLE2$year<-as.factor(PSLE2$year)
@@ -877,7 +878,7 @@ stargazer(fit16, fit16b, fit17, fit17b,type = "text")
 
 Correlations at council level between average scores of Uwezo (kiswahili, english and math) and PSLE in 2015 and 2017 are week to moderate, with coefficients ranging from .31 to .46.
 
-```{r, c1}
+```{r, c1, cache=T}
 
 c1<-PSLE2 %>% group_by(council) %>% filter(year=="2015")%>%
   summarise(uwezo=mean(uwezo15_math_competence,na.rm = T),
@@ -923,7 +924,7 @@ stargazer(ca,summary = F,type="text",header = F)
 ### SFNA
 
 
-```{r, sfna1}
+```{r, sfna1, cache=T}
 
 sfna<-nationalexams %>%filter(exam=="sfna")  %>%left_join(lgacontrols)%>%
   filter(council!="error" & council!="missing in NECTA data")
@@ -942,7 +943,7 @@ colnames(sfna)[7]<-"score"
 
 We follow the same approach to detect outliers than before, excluding observations with more or less than 3 zscores from mean and differences within schools on time larger than 3SD. Figure \@(fig:snfa2) shows the relatively small proportion of excluded observations.
 
-```{r, snfa2}
+```{r, snfa2, cache=T}
 
 sfna2<-  sfna %>% 
     group_by(year)%>%
@@ -977,7 +978,7 @@ sfna %>%
 
 Figure \@ref(fig:sfna4) shows the association over time between DLR and SFNA scores per year. There is no clear slope suggesting an association between both variables, which is also assessed through a mixed-effects regression model allowing for random intercepts for councils and random slopes for years, where we fail to reject the hypothesis of no association between them.
 
-``` {r, sfna4, fig.cap="PSLE average of councils grouped by overall DLR received"}
+``` {r, sfna4, fig.cap="PSLE average of councils grouped by overall DLR received", cache=T}
 
 
 t2<-sfna2 %>% 
@@ -1000,7 +1001,7 @@ sfna2 %>% group_by(council,year) %>% filter(year !="2015")%>%
 
 ```
 
-``` {r,fit22}
+``` {r,fit22, cache=T}
 
 sfna2$council<-as.factor(sfna2$council)
 sfna2$year<-as.factor(sfna2$year)
@@ -1024,7 +1025,7 @@ max(abs(relgrad))
 
 Correlations at council level between average scores of Uwezo (kiswahili, english and math) and SFNA in 2015 and 2017 are week to moderate, with coefficients ranging from .28 to .47.
 
-```{r, c1s}
+```{r, c1s, cache=T}
 
 c1s<-sfna2 %>% group_by(council) %>% filter(year=="2015")%>%
   summarise(uwezo=mean(uwezo15_math_competence,na.rm = T),
@@ -1070,7 +1071,7 @@ stargazer(cas,summary = F,type="text",header = F)
 ## Uwezo
 
 
-```{r, uwezo}
+```{r, uwezo, cache=T}
 
 lg.uwezo<-read_excel("C:\\Users\\LUCAS\\Desktop\\Tanzania\\list_of_LGs_each_year_uwezo.xlsx")
 
@@ -1079,12 +1080,12 @@ variable.names(lg.uwezo)
 head(lg.uwezo)
 #table(lg.uwezo$id_districtName)
 
-Location_details_TZ_Uwezo2015 <- read_dta("uwezo/Location_details_TZ_Uwezo2015.dta")
+Location_details_TZ_Uwezo2015 <- read_dta("C:/Users/LUCAS/Desktop/Tanzania/Tanzania.git/Location_details_TZ_Uwezo2015.dta")
 
 ```
 
 
-```{r, uwe017}
+```{r, uwe017, cache=T}
 
 TZ_2017_merged <- read_dta("C:/Users/LUCAS/Desktop/Tanzania/uwezo/uwezo17/2017hh_merged.dta")
 
@@ -1113,7 +1114,7 @@ TZ_2017_merged%>%
 
 
 
-```{r, uwe15}
+```{r, uwe15, cache=T}
 
 
 TZ15_hhld <- read_dta("C:/Users/LUCAS/Desktop/Tanzania/uwezo/uwezo15/TZ15_hhld.dta")
@@ -1135,7 +1136,7 @@ variable.names(TZ_2015_merged)
 
 
 
-```{r, descriptive UWEZO 2015}
+```{r, descriptive UWEZO 2015, cache=T}
 
 TZ_2015_merged%>%
   group_by(as.factor(grade))%>%
@@ -1155,7 +1156,7 @@ TZ_2015_merged%>%
 # not using bonus
 ```
 
-``` {r, merge uwezo}
+``` {r, merge uwezo, cache=T, cache.lazy=F}
 
 #variable.names(TZ_2017_merged)
 #variable.names(TZ_2015_merged)
@@ -1237,7 +1238,7 @@ library(VGAM)
 
 summary(m <- vglm(scale(kiswahili) ~ as.factor(year) + scale(Amount.Total) + scale(grade) + 
              as.factor(sex),
-           data=subset(uwezo.payments,grade<11), tobit(Upper = 5)))
+           data=subset(uwezo.payments,grade<11), tobit(Upper = 5, Lower=0)))
 
 
 

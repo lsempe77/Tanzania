@@ -1,0 +1,163 @@
+regioncode,regionname,districtcode,districtname,dup
+1,"Dodoma",1,"Kondoa",1
+1,"Dodoma",2,"Mpwapwa",1
+1,"Dodoma",3,"Kongwa",1
+1,"Dodoma",4,"Chamwino",1
+1,"Dodoma",5,"Dodoma Mjini",1
+1,"Dodoma",6,"Bahi",1
+1,"Dodoma",7,"Chemba",1
+2,"Arusha",1,"Monduli",1
+2,"Arusha",2,"Meru",1
+2,"Arusha",3,"Arusha Mjini",1
+2,"Arusha",4,"Karatu",1
+2,"Arusha",5,"Ngorongoro",1
+2,"Arusha",6,"Arusha Vijijini",1
+2,"Arusha",7,"Longido",1
+3,"Kilimanjaro",1,"Rombo",1
+3,"Kilimanjaro",2,"Mwanga",1
+3,"Kilimanjaro",3,"Same",1
+3,"Kilimanjaro",4,"Moshi Vijijini",1
+3,"Kilimanjaro",5,"Hai",1
+3,"Kilimanjaro",6,"Moshi Mjini",1
+3,"Kilimanjaro",7,"Siha",1
+4,"Tanga",1,"Lushoto",1
+4,"Tanga",2,"Korogwe",1
+4,"Tanga",3,"Muheza",1
+4,"Tanga",4,"Tanga",1
+4,"Tanga",5,"Pangani",1
+4,"Tanga",6,"Handeni",1
+4,"Tanga",7,"Kilindi",1
+4,"Tanga",8,"Mkinga",1
+4,"Tanga",9,"Korogwe Mjini",1
+4,"Tanga",10,"Handeni Mji",1
+5,"Morogoro",1,"Kilosa",1
+5,"Morogoro",2,"Morogoro",1
+5,"Morogoro",3,"Kilombero",1
+5,"Morogoro",4,"Ulanga",1
+5,"Morogoro",5,"Morogoro Mjini",1
+5,"Morogoro",6,"Mvomero",1
+5,"Morogoro",7,"Gairo",1
+6,"Pwani",1,"Bagamoyo",1
+6,"Pwani",2,"Kibaha",1
+6,"Pwani",3,"Kisarawe",1
+6,"Pwani",4,"Mkuranga",1
+6,"Pwani",5,"Rufiji",1
+6,"Pwani",6,"Mafia",1
+6,"Pwani",7,"Kibaha Mjini",1
+7,"Dar es Salaam",3,"Temeke",0
+7,"Dar es salaam",2,"Ilala",1
+7,"Dar-es-salaam",1,"Kinondoni",1
+7,"Dar-es-salaam",2,"Ilala",1
+7,"Dar-es-salaam",3,"Temeke",1
+8,"Lindi",1,"Kilwa",1
+8,"Lindi",2,"Lindi Vijijini",1
+8,"Lindi",3,"Nachingwea",1
+8,"Lindi",4,"Liwale",1
+8,"Lindi",5,"Ruangwa",1
+8,"Lindi",6,"Lindi Mjini",1
+9,"Mtwara",1,"Mtwara Vijijini",1
+9,"Mtwara",2,"Newala",1
+9,"Mtwara",3,"Masasi",1
+9,"Mtwara",4,"Tandahimba",1
+9,"Mtwara",5,"Mtwara Mjini",1
+9,"Mtwara",6,"Nanyumbu",1
+9,"Mtwara",7,"Masasi Mji",1
+10,"Ruvuma",1,"Tunduru",1
+10,"Ruvuma",2,"Songea Vijijini",1
+10,"Ruvuma",3,"Mbinga",1
+10,"Ruvuma",4,"Songea Mjini",1
+10,"Ruvuma",5,"Namtumbo",1
+10,"Ruvuma",6,"Nyasa",1
+11,"Iringa",1,"Iringa Vijijini",1
+11,"Iringa",2,"Mufindi",1
+11,"Iringa",3,"Iringa Mjini",1
+11,"Iringa",4,"Kilolo",1
+11,"Iringa",5,"Mamlaka ya mji wa Mafinga",1
+12,"Mbeya",1,"Chunya",1
+12,"Mbeya",2,"Mbeya Vijijini",1
+12,"Mbeya",3,"Kyela",1
+12,"Mbeya",4,"Rungwe",1
+12,"Mbeya",5,"Ileje",1
+12,"Mbeya",6,"Mbozi",1
+12,"Mbeya",7,"Mbarali",1
+12,"Mbeya",8,"Mbeya Mjini",1
+12,"Mbeya",9,"Momba",1
+12,"Mbeya",10,"Tunduma",1
+13,"Singida",1,"Iramba",1
+13,"Singida",2,"Singida Vijijini",1
+13,"Singida",3,"Manyoni",1
+13,"Singida",4,"Singida Mjini",1
+13,"Singida",5,"Ikungi",1
+13,"Singida",6,"Mkalama",1
+14,"Tabora",1,"Nzega",1
+14,"Tabora",2,"Igunga",1
+14,"Tabora",3,"Uyui",1
+14,"Tabora",4,"Urambo",1
+14,"Tabora",5,"Sikonge",1
+14,"Tabora",6,"Tabora Mjini",1
+14,"Tabora",7,"Kaliua",1
+15,"Rukwa",1,"Kalambo",1
+15,"Rukwa",2,"Sumbawanga Vijijini",1
+15,"Rukwa",3,"Nkasi",1
+15,"Rukwa",4,"Sumbawanga Mjini",1
+16,"Kigoma",1,"Kibondo",1
+16,"Kigoma",2,"Kasulu",1
+16,"Kigoma",3,"Kigoma Vijijini",1
+16,"Kigoma",4,"Manispaa ya Kigoma Ujiji",1
+16,"Kigoma",5,"Uvinza",1
+16,"Kigoma",6,"Buhigwe",1
+16,"Kigoma",7,"Kakonko",1
+16,"Kigoma",8,"Kasulu Mjini",1
+17,"Shinyanga",1,"Shinyanga Urban",1
+17,"Shinyanga",2,"Kishapu",1
+17,"Shinyanga",3,"Sinyanga",1
+17,"Shinyanga",4,"Kahama",1
+17,"Shinyanga",5,"Mamlaka ya mji Kahama",1
+18,"Kagera",1,"Karagwe",1
+18,"Kagera",2,"Bukoba vijijini",1
+18,"Kagera",3,"Muleba",1
+18,"Kagera",4,"Biharamulo",1
+18,"Kagera",5,"Ngara",1
+18,"Kagera",6,"Bukoba Mjini",1
+18,"Kagera",7,"Missenyi",1
+18,"Kagera",8,"Kyerwa",1
+19,"Mwanza",1,"Ukerewe",1
+19,"Mwanza",2,"Magu",1
+19,"Mwanza",3,"Nyamagana",1
+19,"Mwanza",4,"Kwimba",1
+19,"Mwanza",5,"Sengerema",1
+19,"Mwanza",6,"Ilemela",1
+19,"Mwanza",7,"Misungwi",1
+20,"Mara",1,"Tarime",1
+20,"Mara",2,"Serengeti",1
+20,"Mara",3,"Musoma",1
+20,"Mara",4,"Bunda",1
+20,"Mara",5,"Musoma Mjini",1
+20,"Mara",6,"Rorya",1
+20,"Mara",7,"Butiama",1
+21,"Manayra",1,"Babati",0
+21,"Manyara",1,"Babati",1
+21,"Manyara",2,"Hanang",1
+21,"Manyara",3,"Mbulu",1
+21,"Manyara",4,"Simanjiro",1
+21,"Manyara",5,"Kiteto",1
+21,"Manyara",6,"Babati Mjini",1
+22,"Njombe",1,"Njombe Mjini",1
+22,"Njombe",2,"Wang''ing''ombe",1
+22,"Njombe",3,"Makete",1
+22,"Njombe",4,"Njombe Vijijini",1
+22,"Njombe",5,"Ludewa",1
+22,"Njombe",6,"Makambako",1
+23,"Katavi",1,"Mpanda Mjini",1
+23,"Katavi",2,"Mpanda Vijijini",1
+23,"Katavi",3,"Mlele",1
+24,"Simiyu",1,"Bariadi",1
+24,"Simiyu",2,"Itilima",1
+24,"Simiyu",3,"Meatu",1
+24,"Simiyu",4,"Maswa",1
+24,"Simiyu",5,"Busega",1
+25,"Geita",1,"Geita",1
+25,"Geita",2,"Nyang''hwale",1
+25,"Geita",3,"Mbogwe",1
+25,"Geita",4,"Bukombe",1
+25,"Geita",5,"Chato",1

@@ -1,78 +1,121 @@
 ---
-title: "Mokoro - Tanzania"
+title: "Statistical analysis of Educational data of Tanzania"
+subtitle: Consultancy for Mokoro - World Bank evaluation project
+date: "`r format(Sys.time(), '%d %B %Y')`"
+author:
+- Lucas Sempé^[Univesidad Católica San Pablo]
+- Paul Clist^[University of East Anglia]
+fontsize: 9pt
 output:
-  word_document: default
+  bookdown::word_document2:
+      number_sections: true
+      toc: no 
+      fig_caption: yes
+  bookdown::pdf_document2:
+      latex_engine: xelatex 
+      number_sections: true
+      toc: no 
+      fig_caption: yes
+  pdf_document: default
   html_notebook: default
-  pdf_document:
-    latex_engine: xelatex
-    number_sections: yes
+  html_document:
+    df_print: paged
 editor_options:
   chunk_output_type: console
+always_allow_html: true
+header-includes:
+- \usepackage{pdflscape}
+- \newcommand{\blandscape}{\begin{landscape}}
+- \newcommand{\elandscape}{\end{landscape}}
+- \usepackage{float}
 ---
-
+  
 ```{r, options, echo=F}
 
-knitr::opts_chunk$set(echo = FALSE, warning = F,message = F,fig.pos="H",tinytex.verbose = TRUE)
+knitr::opts_chunk$set(echo = F, warning = F,message = F,fig.width = 7, fig.align = "center",fig.show = "asis")
 
 ```
 
 
 ```{r, packages}
-
-setwd("C:/Users/LUCAS/Desktop/Tanzania")
-
-
+library(sjlabelled)
+library(brms)
+library(ordinal)
 library(tidyverse)
 library(dplyr)
 library(readxl)
 library(broom)
-library(tabulizer)
 library(rmarkdown)
-library(haven)
-library(hablar)
+library(bookdown)
 library(lme4)
-library(lmerTest)
-library(sjstats)
-library(ggpubr)
-library(lmtest)
 library(plm)
 library(pander)
+library(gridExtra)
+library(stargazer)
+library(performance)
+library(hablar)
+library(ggthemes)
+library(haven)
 
-options(scipen = 3)
+options(scipen = 2)
+
+setwd("C:/Users/LUCAS/Desktop/Tanzania")
 
 ```
 
-```{r}
-panderOptions('digits',3)
+```{r,panderopt}
+
+panderOptions('digits',2)
 
 panderOptions('table.continues',F)
 
 ```
 
-# Data
+# Introduction and empirical strategy
 
-`lgacontrols`: 89 variables ranging from population, poverty, goverment expenditure,
+This report is part of an assessment commissioned by the World Bank (WB) Results in Education for All Children (REACH) for ‘Evaluating Results-Based Financing (RBF) in the Education Sector: Country Level Analysis’ and executed by Mokoro. 
+
+This report focuses on the results of RBF (B3) answering the following evaluation questions:
+  
+  + Was there evidence of improved results to which RBF contributed? 
+  
+  + To what degree, and in what ways?  
+  
+  + Has behaviour change occurred, where and to what extent? Have changes been sustained?
+  
+  We focus our analysis on DLI 4.2. and DLI 6.2:
+  
+  + 4.2. LGAs meet annual target for schools achieving acceptable primary pupil-teache ratios range	local governments
+
++ 6.2. Meet annual target of improvement in average Kiswahili words per minute in 3R assessment among Standard 2 students, which relate to improvement in learning outcomes.
+
+The analysis is structured in three main sessions, followed by an Appendix. The first section describes contextual and payment data. The second section focuses on descriptive and inferential analysis of data related to DLI 4.2., while the third section approaches DLI 6.2. There are 3 different sources of learning outcomes that will be analysed, namely, PSLE, SFNA and Uwezo.
+
+# Contextual and payments dataset 
+
+- `lgacontrols`: 89 variables ranging from population, poverty, government expenditure,
 data on educational system. Data ranges from 2015-2019. Not all data has complete series.
 
-```{r, lga controls}
+- `payments_alldrs`: 9 variables. Payments in dollars per DLI between 2015 and 2019, disaggregated at council level (LGA). 
+
+- Between 184 and 185 LGA are elegible, although not all of them receive funds. 
+
+- Not all DLI are paid across range of years.
+
+- `payments_alldlrs.c`: DLI payments are aggregated at council and DLI (losing time dimension) to use in the analysis of DLI 4 - PTR (only data on 2015 and 2019, a before/after).
+
+- About DLI 4.2: Average amount received: 82016$, std. dev: 92569; 33 councils received 0. Quartiles: 1st: 14782, 3rd: 115000
+
+- DLI 4.2 over time: many councils with 0; year 2018 is the highest average: 33880, std. dev 65192. years 2016 and 2017 average lower: 16141, 11207, respectively.
+
+- There is no available data for DLI 6.2. Considering learning outcomes are a desired impact of an educational system with different factors influencing its results, we use the aggregated DLI resources to assess its association to learning outcomes.
+
+```{r, lgacontrols}
 
 lgacontrols <- read_excel("C:/Users/LUCAS/Desktop/Tanzania/lgacontrols.xlsx")
 
 #variable.names(lgacontrols)
 ```
-
-# Payments 
-
-`payments_alldrs`: 9 variables. Payments in dollars per DLI between 2015 and 2019, disaggregated at council level (LGA). 
-
-Between 184 and 185 LGA are elegible, although not all of them receive funds. 
-Not all DLI are paid across range of years.
-
-`payments_alldlrs.c`: DLI payments are aggregated at council and DLI (losing time dimension) to use in the analysis of DLI 4 - PTR (only data on 2015 and 2019, a before/after).
-
-About DLI 4.2: Average amount received: 82016$, std. dev: 92569; 33 councils received 0. Quartiles: 1st: 14782, 3rd: 115000
-
-DLI 4.2 over time: many councils with 0; year 2018 is the highest avarage: 33880, std. dev 65192. years 2016 and 2017 average lower: 16141, 11207, respectevely.
 
 ```{r, payments, warning=F,message=F}
 
@@ -80,8 +123,9 @@ payments_alldlrs <- read_excel("C:/Users/LUCAS/Desktop/Tanzania/ptr/payments-all
 
 #variable.names(payments_alldlrs)
 
-pander(table(payments_alldlrs$DLI, payments_alldlrs$Year), style = "simple",
-      caption = "DLI payments per year - potential councils")
+
+pander(table(payments_alldlrs$DLI, payments_alldlrs$Year), style = "simple",digits=2,
+       caption = "DLI payments per year - potential councils")
 
 #table(payments_alldlrs$`DLI description`, payments_alldlrs$Year)
 
@@ -91,7 +135,7 @@ pander(table(payments_alldlrs$DLI, payments_alldlrs$Year), style = "simple",
 
 
 payments_alldlrs.c<-payments_alldlrs%>%group_by(council,DLI)%>%
-summarise(Amount.t=sum(Amount))  #aggregating amount by council, losing time dimension
+  summarise(Amount.t=sum(Amount))  #aggregating amount by council, losing time dimension
 
 payments_alldlrs.c%>%filter(DLI==4.2)%>%
   ggplot()+geom_histogram(aes(x=Amount.t),bins = 30)+
@@ -100,472 +144,1142 @@ payments_alldlrs.c%>%filter(DLI==4.2)%>%
 
 pay<-payments_alldlrs.c%>%filter(DLI==4.2)%>%ungroup()%>%
   summarise(count = n(),
-              Mean.Amount.t = mean(Amount.t),
-              SD.Amount.t = sd(Amount.t),
-            `Councils without receiveing`= sum(Amount.t == 0))
+            Mean.Amount.t = mean(Amount.t),
+            SD.Amount.t = sd(Amount.t),
+            `Councils not receiveing money for DLI 4.2`= sum(Amount.t == 0))
 
-pander(pay, style = "simple",
-      caption = "Aggregated DLI 4.2 payments - Descriptive statistics")
+pander(pay, style = "simple",digits=2,
+       caption = "Aggregated DLI 4.2 payments - Descriptive statistics")
 
 #payments_alldlrs.c%>%filter(DLI==4.2)%>%ungroup()%>%  summarise(Quartile.Amount.t= quantile(Amount.t, probs = c(0.25, 0.5, 0.75)))
 
 pay2<-payments_alldlrs%>%filter(DLI==4.2)%>%group_by(Year)%>%
   summarise(count = n(),
-              Mean.Amount = mean(Amount),
-              SD.Amount = sd(Amount),
-            `Councils without receiveing`= sum(Amount == 0))
+            Mean.Amount = mean(Amount),
+            SD.Amount = sd(Amount),
+            `Councils not receiveing`= sum(Amount == 0))
 
 pander(pay2, style = "simple",
-      caption = "DLI 4.2 payments per year - Descriptive statistics")            
+       caption = "DLI 4.2 payments per year - Descriptive statistics")            
+
 ```
 
 # DLR 4 - Pupil teacher ratio 
 
-Pupil teacher ratio ranges from 0 to 884 studentes per teacher. This suggests measurement errors. Setting outliers at <1.5%  and >98.5%, excluded values are <8.8 and > 113.82.
+## Descriptive analysis
 
-```{r, ptr and outliers, warning=F,message=F}
+As DLR 4 payments are linked to reaching the the acceptable cutoff on PTR, there is a risk of endogeneity/reverse causality on the analysis.
 
-ptr_2019_2015 <- read.csv("C:/Users/LUCAS/Desktop/Tanzania/ptr/ptr_2019_2015.csv",na.strings='.')
+16,631 schools surveyed in 2015 were matched to 2019 schools, of which 173 did not have teacher counts and 137 of those did not have pupil counts. As a result 96% of the national total enrolment in 2015 is placed in one of the 16,457 matched schools. Songwe LGA was dropped due to a lack of identifiable 2015 schools. 17,352 schools are present in 2017 and 17,792        are found in 2019. Aggregated PTR (without dealing with outliers) has increased over time from 46.2 in 2015 to 54.4 in 2019, while the distribution remains similar over time (see Table \@ref(tab:sum1)).
 
-ptr_2019_2015$ptr<-ptr_2019_2015$Total.Primary/ptr_2019_2015$TotTeach # computing again ptr (to avoid excel csv error)
-ptr_2019_2015$pqtr<-ptr_2019_2015$Total.Primary/ptr_2019_2015$totqualteach # computing again ptr (to avoid excel csv error)
+```{r, sum1, warning=F,message=F, cache=T}
 
+ptr_2019_2017_2015 <- read_excel("ptr/ptr_2019_2015_w_pbr_final.xlsx", 
+                                 sheet = "ptr_2019_2015", 
+                                 col_types = c("text", 
+                                     "numeric", "numeric", "text", "text", 
+                                              "text", "text", "text", "text", "text", 
+                                          "text", "text", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "text", "text", "text", 
+                                                                        "text", "text", "text", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "numeric", "numeric", 
+                                                                        "numeric", "text", "text", "text", 
+                                                                        "text", "text", "text", "text", "text", 
+                                                                        "text", "text", "text", "text", "text", 
+                                                                        "text", "text", "text", "text", "text", 
+                                                                        "text", "text", "text", "text", "text", 
+                                                                        "text", "text", "text", "text", "text", 
+                                                                        "text", "text", "text", "text", "text", 
+                                                                        "text", "numeric", "numeric", "numeric"))
 
-pander(summary(ptr_2019_2015$ptr),
-        style = "simple",
-      caption = "PTR - Descriptive statistics")# range from 0 to 884 - outliers
+ptr_2019_2017_2015<-ptr_2019_2017_2015 %>% filter(year!="2017_alt")%>%
+  mutate(year=replace(year, year=="2017_match_DLR", "2017"))
 
+sum1<-ptr_2019_2017_2015 %>%  filter_all(all_vars(!is.infinite(.)))%>%
+  filter(!(`Total Primary` <= 0 | `Total Teachers` <= 0 | PTR <= 0))%>%
+# group_by(id)%>%  filter(n()>2)%>%
+  group_by(year) %>% 
+  summarise(n = n(),
+            PTR.median=median(PTR,na.rm=T),
+            PTR.mean=mean(PTR,na.rm=T),
+            PTR.sd=sd(PTR,na.rm = T)) 
 
-#sd(ptr_2019_2015$ptr,na.rm = T) # sigma 25.04
+pander(sum1,
+       style = "simple",
+       caption = "Summary PTR with outliers")
 
-outlier_values <- boxplot.stats(ptr_2019_2015$ptr)$out  # outlier ptr values >112
-#head(sort(outlier_values))
-#quantile(ptr_2019_2015$ptr, probs = seq(0, 1, 1/200),na.rm = T) # outliers at 1.5%  and 98.5%-> <8.8 and >113.82  ?
-
-outlier_values2 <- boxplot.stats(ptr_2019_2015$pqtr)$out  # outlier pqtr values >114
-#head(sort(outlier_values2))
-#quantile(ptr_2019_2015$pqtr, probs = seq(0, 1, 1/200),na.rm = T) # outliers at 1.5%  and 98.5%-> <9.85 and >128.13  ?
 
 ```
 
-```{r, ptr SCHOOL difference between 2019 and 2015, warning=F,message=F}
+## Outliers treatment and selection of schools for analysis 
 
-ptr_2019_2015$SCHNAME<-as.factor(ptr_2019_2015$SCHNAME)
+### School level
 
-#table(ptr_2019_2015$Duplicate) #13 duplicate
+Figure \@ref(fig:quartiles) shows school-level data for pupil-teacher ratios across years 2015, 2017 and 2019. Colours represent each regions. It is possible to observe a wide interquartile range in all years, a significant number of outliers on the upper bound and also values close to 0. This suggests the need to address data quality systematically.
 
-#variable.names(ptr_2019_2015)
-ptr_2019_2015<-ptr_2019_2015%>%group_by(council,SCHNAME)%>%filter(Duplicate!="yes")%>%
-  mutate(diffence.school.ptr=  ptr - dplyr::lag(ptr,order_by = ï..year) ,
-          diffence.school.pqtr= pqtr -dplyr::lag(pqtr,order_by = ï..year)) # pte `19 - `15: negative values are good.
+``` {r,quartiles,fig.cap="PTR"}
 
-#summary(ptr_2019_2015$diffence.school.ptr) # 18172  schools don't match and measurement eror 
-#summary(ptr_2019_2015$diffence.school.pqtr) # 18172  schools don't match and measurement eror
+#ptr_2019_2017_2015 %>% group_by(year)%>%  filter(`Total Primary` <= 0) %>% summarise(counted = n())
+
+#ptr_2019_2017_2015 %>% group_by(year)%>%  filter(`Total Teachers` <= 0) %>% summarise(counted = n())
+
+ptr_2019_2017_2015 %>% ggplot()+geom_boxplot(aes(x=year,y=PTR,colour=REGION))+ggtitle("PTR per year - Schools/Regions")+theme_clean()+theme(legend.position = "none")
+
+
+#ptr_2019_2017_2015 %>%ggplot()+geom_histogram(aes(x=PTR,colour=year),alpha=.5,bins=1000)+  ggtitle("PTR per year - Schools/Regions")+theme_clean()+theme(legend.position = "none")
+
+
+#$ptr_2019_2017_2015 %>% group_by(year)%>% filter(PTR == 0) %>% summarise(counted = n())
+
+#ptr_2019_2017_2015 %>% group_by(year)%>%   filter(PTR > 400) %>% dplyr::select(year,id,REGION, COUNCIL,PTR)%>%print(n=40)
+
+#ptr_2019_2017_2015 %>%  filter(id == 6508 | id==14468 | id ==16200) %>%  dplyr::select(year,id,REGION, COUNCIL,PTR) %>% arrange(id)
+
+#ptr_2019_2017_2015%>%  filter_all(all_vars(!is.infinite(.)))%>% filter(!(`Total Primary` == 0 | `Total Teachers` == 0 | PTR == 0))%>%  dplyr::select(REGION, year,id,ptr,`Total Primary`, `Total Teachers`)%>% arrange(id)%>%group_by(id)%>%  mutate(diffence.school.ptr=  ptr - dplyr::lag(ptr,order_by = year)) %>%   filter(diffence.school.ptr > 100 | diffence.school.ptr < -100) %>% group_by(year,REGION)%>%  summarise(count=n()) %>%  ungroup() %>% summarise(tot=sum(count))
+
+
+#ptr_2019_2017_2015%>%  filter_all(all_vars(!is.infinite(.)))%>% filter(!(`Total Primary` <= 0 | `Total Teachers` <= 0 | PTR <= 0))%>%  dplyr::select(REGION, year,id,ptr,`Total Primary`, `Total Teachers`)%>%   arrange(id)%>%    group_by(id)%>%  mutate(diffence.school.ptr=  ptr - dplyr::lag(ptr,order_by = year)) %>%    filter(diffence.school.ptr > 100 | diffence.school.ptr < -100) %>%       group_by(year)%>%  summarise(count=n()) 
+
+
+#ptr_2019_2017_2015%>%  filter_all(all_vars(!is.infinite(.)))%>% filter(!(`Total Primary` == 0 | `Total Teachers` == 0 | PTR == 0))%>%  dplyr::select(year,id,REGION, COUNCIL,ptr,pqtr)%>%arrange(id)%>%  group_by(id)%>%  mutate(diffence.school.ptr=  ptr - dplyr::lag(ptr,order_by = year),     diffence.school.pqtr= pqtr - dplyr::lag(pqtr,order_by = year)) %>% group_by(year,REGION)%>% summarise(mean=mean(diffence.school.ptr,na.rm=T))%>%  filter(year!="2015")%>%print(n=52)
+
+#ptr_2019_2017_2015%>%  filter_all(all_vars(!is.infinite(.)))%>%  filter(!(`Total Primary` == 0 | `Total Teachers` == 0 | PTR == 0))%>%  dplyr::select(year,id,REGION, COUNCIL,PTR)%>%  arrange(id)%>%    group_by(id)%>%  mutate(diffence.school.ptr=  PTR - dplyr::lag(PTR,order_by = year)) %>% filter(year!=2015)%>%      ggplot()+geom_histogram(aes(x=diffence.school.ptr),                              bins=50)+facet_wrap(~year,scales = "free")
+
+
+``` 
+
+Among different alternatives of data quality analysis (see Appendix for analysis done through IQR and Mahalanobis distance), we chose to detect outliers based on z-scores distance from the mean. Figure \@ref(fig:out) presents all schools identified as outliers with distances ranging from ± 3 to +32.5 standard deviations from the mean where schools in year 2019 shows the most extreme cases. Additionally, we present the absolute PTR for selected schools as a reference. For instance, the maximum value of PTR found was 884, equivalent to 32.5 standard deviations. 
+
+The criteria to exclude observations relies on the previous outliers analysis as well as a preference for longitudinal data. Any school falling under at least one of the criteria was excluded from the sample following this order:
+
+- Negative numbers in pupils, teachers or PTR
+- plus/minus PTR 3 SD assessed separately by each year
+- difference within schools > 3SD or < 3SD
+- in case of PTR very lows, exclusion of PTR < - 2 SD (as -3SD falls into the negative realm of values)
+- schools without 3 observations (2015, 17 and 19)
+
+By doing this, we  lose 8.3% of the observations and won't affect statistical power (51,786 to 47,778 observations), having a balanced panel of 15,926 schools. 
+
+```{r, plotptr3}
+
+PTR<-  ptr_2019_2017_2015 %>% 
+  filter(!(`Total Primary` <= 0 | `Total Teachers` <=0  | PTR <= 0)) %>%
+  dplyr::select(id,year,`Total Primary`,`Total Teachers`,PTR,COUNCIL) %>%
+  group_by(year)%>%
+  mutate(pt=scale(PTR))%>% 
+     group_by(id)%>%
+     mutate(diffence.school.ptr=  pt - dplyr::lag(pt,order_by = year)) %>% 
+         group_by(year)%>%
+      mutate(outlier = case_when (abs(pt - mean(pt)) > 3*sd(pt) ~ "out",
+           T ~ "no")) %>% 
+    ungroup()%>%
+       mutate(outlier2 = case_when (abs(diffence.school.ptr) > 3 |  pt < -2 ~ "out",
+           T ~ "no")) %>% 
+     filter(outlier == "no" & outlier2 =="no")%>%
+  group_by(id) %>%  filter(n()>2 )
+
 ```
 
-``` {r, ptr council, warning=F,message=F}
+Figure \@ref(fig:out) presents identified outliers observations, where is possible to observe years 2017 and 2019 have outliers in the lower bound, and 2019 shows the largest range of outliers.
 
-# money flows at council level, so compare councils
+``` {r, out, fig.cap="Outliers detection", cache=T}
 
-ptr_2019_2015.anova<-ptr_2019_2015%>%
-  filter((ptr>8 & ptr<113)&(pqtr>9.85&pqtr<128.13)& Duplicate!="yes")%>% # filtering outliers and duplicated
-  mutate(share.ptr = case_when(ptr > 50    ~ 1,
-                        ptr < 50    ~ 0)) %>%
-  group_by(council,ï..year)%>%      # grouping by year 2015 and 2019 
+highlight_df<-  ptr_2019_2017_2015 %>% 
+  filter(!(`Total Primary` <= 0 | `Total Teachers` <=0  | PTR <= 0))%>%
+  dplyr::select(id,year,`Total Primary`,`Total Teachers`,PTR,COUNCIL) %>%group_by(year)%>%
+  mutate(pt=scale(PTR))%>% group_by(id)%>%
+     mutate(diffence.school.ptr=  pt - dplyr::lag(pt,order_by = year)) %>% group_by(year)%>%
+      mutate(outlier = case_when (abs(pt - mean(pt)) > 3*sd(pt) ~ "out",
+           T ~ "no")) %>% ungroup()%>%
+       mutate(outlier2 = case_when (abs(diffence.school.ptr) > 3 |  pt < -2 ~ "out",
+           T ~ "no")) %>% filter(outlier == "out" | outlier2 =="out") %>%
+  group_by(id) %>%  filter(n()>2 ) 
+
+ptr_2019_2017_2015 %>% 
+  filter(!(`Total Primary` <= 0 | `Total Teachers` <=0  | PTR <= 0))%>%
+  group_by(id) %>%  filter(n()>2 ) %>%
+  dplyr::select(id,year,`Total Primary`,`Total Teachers`,PTR,COUNCIL) %>%group_by(year)%>%
+  mutate(pt=scale(PTR))%>% group_by(id)%>%
+     mutate(diffence.school.ptr=  pt - dplyr::lag(pt,order_by = year)) %>% group_by(year)%>%
+      mutate(outlier = case_when (abs(pt - mean(pt)) > 3*sd(pt) ~ "out",
+           T ~ "no")) %>% ungroup()%>%
+       mutate(outlier2 = case_when (abs(diffence.school.ptr) > 3 |  pt < -2 ~ "out",
+           T ~ "no")) %>% filter(outlier == "no" & outlier2 =="no")  %>%  arrange (pt)%>% ggplot ()+
+  geom_point(aes(x=year,y=pt)) + theme_clean()+#+geom_hline(yintercept = 0)+
+  geom_text(data=highlight_df,
+            aes(x=year,y=pt,label=round(PTR,1)),
+            size=4,
+            check_overlap = T,hjust=1.5)+
+  labs(x = "Year",
+       y = "Distance from PTR mean as Standard deviations") + 
+    ggtitle("Outliers PT")
+
+```
+
+Table \@ref(tab:ptrout) displays summary statistics such as mean, median and standard deviation for PTR after discarding outliers across years, where all statistics shows a consistent growth over time. While mean values are not affected after removing schools, the median and standard deviations changed significantly. Additionally, while number of students increased over time, the same did not happened to the number of teachers in the same proportion.
+
+```{r, ptrout}
+
+ptrout<-PTR%>% group_by(year)%>% 
+  summarise(schools = n_distinct(id),
+            Students=sum(`Total Primary`,na.rm=T),
+            Teachers=sum(`Total Teachers`,na.rm=T),
+            Median.ptr= median(PTR,na.rm = T),
+            Mean.ptr = mean(PTR,na.rm = T),
+            SD.ptr = sd(PTR,na.rm = T))
+
+pander(ptrout,
+       style = "simple",
+       caption = "Summary PTR without outliers")
+
+```
+
+### Council level 
+
+``` {r, ptranova, warning=F,message=F, cache=T}
+
+ptr_2019_2017_2015 <- ptr_2019_2017_2015 %>% mutate(COUNCIL=toupper(COUNCIL))
+ 
+ptr_2019_2015.anova <-  ptr_2019_2017_2015 %>% 
+  filter(!(`Total Primary` <= 0 | `Total Teachers` <=0  | PTR <= 0))%>%
+  dplyr::select(id,year,`Total Primary`,`Total Teachers`,PTR,COUNCIL) %>%group_by(year)%>%
+  mutate(pt=scale(PTR))%>% group_by(id)%>%
+     mutate(diffence.school.ptr=  pt - dplyr::lag(pt,order_by = year)) %>% group_by(year)%>%
+      mutate(outlier = case_when (abs(pt - mean(pt)) > 3*sd(pt) ~ "out",
+           T ~ "no")) %>% ungroup()%>%
+       mutate(outlier2 = case_when (abs(diffence.school.ptr) > 3 |  pt < -2 ~ "out",
+           T ~ "no")) %>% filter(outlier == "no" & outlier2 =="no") %>% 
+    group_by(id) %>%  filter(n()>2 ) %>%
+  mutate(share.ptr = case_when(PTR > 50    ~ 1,
+                               PTR < 50    ~ 0)) %>% 
+  group_by(COUNCIL,year)%>%      # grouping by year 2015 and 2019 
   summarise(share.sch.not.accept=sum(share.ptr,na.rm = T)/n(),
-            ptr.c=mean(ptr,na.rm = T),                 # mean ptr by council/year
-            pqtr.c=mean(pqtr,na.rm = T),               # mean pqtr by council/year
-            std.tot=sum(Total.Primary,na.rm = T),      # sum of students by council/year 
-            teach.tot=sum(TotTeach,na.rm=T),          # sum of teachers by council/year 
-            qteach.tot=sum(totqualteach,na.rm=T),     # sum of qualified teachers by council/year
+            ptr.c=mean(PTR,na.rm = T),               # mean pqtr by council/year
+            std.tot=sum(`Total Primary`,na.rm = T),      # sum of students by council/year 
+            teach.tot=sum(`Total Teachers`,na.rm=T),     # sum of qualified teachers by council/year
             schools=n(),   # number of schools
-    teach.surplus.ideal.distr=((mean(teach.tot,na.rm = T)-(mean(std.tot,na.rm=T)/50))))#(tch - std/50) => + means excess
+            teach.surplus.ideal.distr=((mean(teach.tot,na.rm = T)-(mean(std.tot,na.rm=T)/50))))
 
-ptr_2019_2015.anova<-ptr_2019_2015.anova %>%group_by(council)%>%# diff across council and lagged value - neg is good!
-           mutate(difference.council.ptr= ptr.c - dplyr::lag(ptr.c,order_by = ï..year),
-                  difference.council.pqtr= pqtr.c - dplyr::lag(pqtr.c,order_by = ï..year),
-                  dif.std=std.tot-dplyr::lag(std.tot,order_by = ï..year),
-                  dif.tch=teach.tot-dplyr::lag(teach.tot,order_by = ï..year),
-                  dif.qtch=qteach.tot-dplyr::lag(qteach.tot,order_by = ï..year))
+
+ptr_2019_2015.anova<-ptr_2019_2015.anova %>%group_by(COUNCIL)%>%# diff across council and lagged value - neg is good!
+  mutate(difference.council.ptr= ptr.c - dplyr::lag(ptr.c,order_by = year),      dif.std=std.tot-dplyr::lag(std.tot,order_by = year),
+         dif.tch=teach.tot-dplyr::lag(teach.tot,order_by =year))
 
 ptr_2019_2015.anova<- ptr_2019_2015.anova %>% rationalize() # remove Inf
 
-ptr_2019_2015.anova$ï..year<-as.factor(ptr_2019_2015.anova$ï..year)
+#ptr_2019_2015.anova$year<-as.factor(ptr_2019_2015.anova$year)
 
 colnames(ptr_2019_2015.anova)[2]<-"year.ptr"
 
 ```
 
-PTR is aggregated at LGA level because there is not match of 18172 of council/school names.
+School PTR across councils have deteriorated between 2015 and 2019. The overall average of schools with a PTR over 50 (which was the standard in 2015) growths from 31% in 2015, 43% in 2017 and 56% in 2019. While the share dispersion measured by the standard deviation, also increases form 19% to 26% in the period (see Table \@ref(tab:share)).
 
-Analysing PTR over time (2015 and 2019), we observe median and mean are higher in the in 2019 roughly by 5.5 pupils. 
-
-``` {r, summary ptr, warning=F,message=F}
-
-ptr<-ptr_2019_2015.anova%>%group_by(year.ptr)%>%
-    summarise(Median.ptr.c= median(ptr.c),
-              Mean.ptr.c = mean(ptr.c),
-              SD.ptr.c = sd(ptr.c))
-
-pander(ptr,
-        style = "simple",
-      caption = "PTR by year without outliers - Descriptive statistics")
-```
-
-
-This is explained by an important raise in students population (15.5% on average) and a smaller increase in teacher population (4.7%).
-
-Total number of students per council across years
-``` {r, tables year ptr}
-pander(tapply(ptr_2019_2015.anova$std.tot,ptr_2019_2015.anova$year.ptr,summary),
-             style = "simple",
-      caption = "Total students by year - Descriptive statistics") # important increase on students55807/48421 = 15.2%
-```
-
-Total number of teachers per council across years
-``` {r, table teach ptr}
-pander(tapply(ptr_2019_2015.anova$teach.tot,ptr_2019_2015.anova$year.ptr,summary),
-             style = "simple",
-      caption = "Total teachers by year - Descriptive statistics") # not so relevant  on teachers 1085.6/1036.6 = 4.7%
-
-
-```
-
-School PTR across councils have deteriorated between 2015 and 2019. The overall average of schools with a PTR over 50 (which was the standard in 2015) growths from 42.1% to 54.4% and dispersion, measured by the standard deviation, also increases form 23.4% to 26.1%.
-
-The following plot shows the fraction of schools above the acceptable threshold for 2015 (>50 students) in both years, ranging from 0 to 97.25%.
-
-``` {r, plot share schools ptr over 50, warning=F,message=F}
+``` {r, share, warning=F,message=F}
 
 share<-ptr_2019_2015.anova%>%group_by(year.ptr)%>%
-    summarise(Median= median(share.sch.not.accept),
-              Mean= mean(share.sch.not.accept),
-              SD = sd(share.sch.not.accept))
-            
-pander(share,
-             style = "simple",
-      caption = "Share of schools with PTR > 50 - Descriptive statistics")
+  summarise(Median= median(share.sch.not.accept),
+            Mean= mean(share.sch.not.accept),
+            SD = sd(share.sch.not.accept))
 
-ptr_2019_2015.anova %>% #filter(year.ptr==2015)%>%
-  ggplot()+
-  geom_point(aes(x=council,y=sort(share.sch.not.accept),
-                 group=year.ptr,colour=year.ptr),
-             position = "jitter")+
-  ylab("Fraction of schools with ptr > 50")+  xlab("Councils")+
-  theme(axis.text.x = element_blank(),axis.ticks = element_blank(),panel.background = element_blank())+
-  scale_y_continuous(breaks = seq(0,1,.1))
+pander(share,
+       style = "simple",
+       caption = "Share of schools with PTR > 50 - Descriptive statistics")
+
+#ptr_2019_2015.anova %>% #filter(year.ptr==2015)%>% ggplot()+  geom_point(aes(x=COUNCIL,y=sort(share.sch.not.accept),                 group=year.ptr),             position = "jitter")+  ylab("Fraction of schools with ptr > 50")+  xlab("Councils")+  theme(axis.text.x = element_blank(),axis.ticks = element_blank(),panel.background = element_blank())+  scale_y_continuous(breaks = seq(0,1,.1))+facet_wrap(~year.ptr)
 
 ```
 
-An ideal surplus of teachers per council was computed as $\sum Teachers - (\sum Students /50)$, which gives an idea of the ability of the council to achieve equaty in the distribtion of teachers. A major caveat of this calculation relies on the fact that students cannot follow the same ideal distribution due to household location, school resources and population age structure. However, this allows to understand the magnitude of gaps to be covered. 
+An ideal surplus of teachers per council was computed as $\sum Teachers - (\sum Students /50)$, which gives an idea of the ability of the council to achieve equity in the distribution of teachers. A major caveat of this calculation relies on the fact that students cannot follow the same ideal distribution due to household location, school resources and population age structure. However, this allows to understand the magnitude of gaps to be covered. 
 
-The following plots shows, for 2015 and 2019, the average PTR per council and the average ideal teacher surplus. The green area capture those councils under the PTR threshold, while the red are those which, having an ideal surplus, are above the PTR cutoff. The yellow area represents those councils that are both above PTR threshold and with teacher's deficit. 
+Figure \@ref(fig:plotprt) shows the average PTR per council and the ideal distribution of teacher surplus across years (each teacher allocated to 50 students). The best allocation of teachers will be across the horizontal 0 line, which represents no surplus of teachers in terms of actual PTR. The green area captures those councils that fall under the PTR threshold of 50, and diverse rates of efficiency on allocation. The read box represents councils both having an ideal surplus and a current PTR over 50. While it occurs, there is not excessive misallocation of teachers. Finally, the yellow are represents those councils that are above the PTR threshold and present a teacher's deficit, which makes impossible reaching an average of PTR below or equal to 50 with current resources. In 2019 allocation on that area presents greater inequality than previous years.
 
+There is a strong negative linear correlation between PTR and ideal teacher surplus (-.70, -.80 and -.87) across years (see Table \@ref(tab:cora)). Both tails, in the negative and positive side, show different patterns. With a PTR less than 50, found in the left upper quadrant (green), there is a larger variance between councils in terms of teachers surplus, which suggests different levels of efficiency. However, the majority of councils on yellow and red areas could be considered efficient in terms of teachers allocation due to the lack of teachers' surplus. This is also confirmed by the strong correlation (.95 across all years) between average PTR and share of schools with PTR above 50 per council (see Table \@ref(tab:cora2)).
 
+``` {r, plotptr, fig.cap="Average PTR and Ideal teacher surplus"}
 
-``` {r, plot ptr.c and teach.surplus.ideal.distr, warning=F,message=F}
-
-ptr_2019_2015.anova %>% filter(year.ptr==2015)%>%
+ptr15<-ptr_2019_2015.anova %>% filter(year.ptr==2015)%>%
   ggplot()+
-  geom_point(aes(x=ptr.c,y=teach.surplus.ideal.distr,group=year.ptr,colour=year.ptr),colour="darkblue") +
+  geom_point(aes(x=ptr.c,y=teach.surplus.ideal.distr,group=year.ptr,colour=year.ptr),colour="black") +
   #scale_color_manual(values = c("2015" = "darkblue", "2019" = "darkorange"))+
   theme(axis.ticks = element_blank(),panel.background = element_blank())+
        ggtitle("Average PTR and Ideal teacher surplus - 2015")+
-  scale_y_continuous(breaks = seq(-1500,1650,300))+xlab("average ptr per council")+
-  ylab("average teach surplus ideal per council")+
+  scale_y_continuous(breaks = seq(-1500,1650,300))+
   scale_x_continuous(breaks = seq(20,200,10))+
   geom_hline(yintercept=0,linetype="dashed", color = "gray")+
-  geom_vline(xintercept=35,linetype="dashed", color = "gray")+
+  #geom_vline(xintercept=35,linetype="dashed", color = "gray")+
     geom_vline(xintercept=50,linetype="dashed", color = "gray")+
-  geom_rect(aes(xmin=25, xmax=50, ymin=0, ymax=1700), fill="darkgreen", alpha=.002) +
+  geom_rect(aes(xmin=20, xmax=50, ymin=0, ymax=1700), fill="darkgreen", alpha=.002) +
+  geom_rect(aes(xmin=50, xmax=80, ymin=0, ymax=1700), fill="red", alpha=.002) +
+  geom_rect(aes(xmin=50, xmax=80, ymin=-1500, ymax=0), fill="yellow", alpha=.002) +ylab("")+xlab("")
+
+
+ptr17<-ptr_2019_2015.anova %>% filter(year.ptr==2017)%>%
+  ggplot()+
+  geom_point(aes(x=ptr.c,y=teach.surplus.ideal.distr,group=year.ptr,colour=year.ptr),colour="black") +
+  #scale_color_manual(values = c("2015" = "darkblue", "2019" = "darkorange"))+
+  theme(axis.ticks = element_blank(),panel.background = element_blank())+
+       ggtitle("Average PTR and Ideal teacher surplus - 2015")+
+  scale_y_continuous(breaks = seq(-1500,1650,300))+xlab("")+
+  ylab("Mean ideal teacher surplus")+
+  scale_x_continuous(breaks = seq(20,200,10))+
+  geom_hline(yintercept=0,linetype="dashed", color = "gray")+
+  #geom_vline(xintercept=35,linetype="dashed", color = "gray")+
+    geom_vline(xintercept=50,linetype="dashed", color = "gray")+
+  geom_rect(aes(xmin=20, xmax=50, ymin=0, ymax=1700), fill="darkgreen", alpha=.002) +
   geom_rect(aes(xmin=50, xmax=80, ymin=0, ymax=1700), fill="red", alpha=.002) +
   geom_rect(aes(xmin=50, xmax=80, ymin=-1500, ymax=0), fill="yellow", alpha=.002) 
 
-
-ptr_2019_2015.anova %>% filter(year.ptr==2019)%>%
+ptr19<- ptr_2019_2015.anova %>% filter(year.ptr==2019)%>%
   ggplot()+
   geom_point(aes(x=ptr.c,y=teach.surplus.ideal.distr,group=year.ptr,colour=year.ptr),colour="black") +
   #scale_color_manual(values = c("2015" = "darkblue", "2019" = "darkorange"))+
   theme(axis.ticks = element_blank(),panel.background = element_blank())+
        ggtitle("Average PTR and Ideal teacher surplus - 2019")+
-  scale_y_continuous(breaks = seq(-1500,1650,300))+xlab("average ptr per council")+
-  ylab("average teach surplus ideal per council")+
+  scale_y_continuous(breaks = seq(-1500,1800,300))+xlab("Mean PTR per council")+ylab("")+
   scale_x_continuous(breaks = seq(20,200,10))+
   geom_hline(yintercept=0,linetype="dashed", color = "gray")+
-  geom_vline(xintercept=35,linetype="dashed", color = "gray")+
+  #geom_vline(xintercept=35,linetype="dashed", color = "gray")+
     geom_vline(xintercept=50,linetype="dashed", color = "gray")+
-  geom_rect(aes(xmin=25, xmax=50, ymin=0, ymax=1700), fill="darkgreen", alpha=.002) +
-  geom_rect(aes(xmin=50, xmax=80, ymin=0, ymax=1700), fill="red", alpha=.002) +
-  geom_rect(aes(xmin=50, xmax=80, ymin=-1500, ymax=0), fill="yellow", alpha=.002) 
+  geom_rect(aes(xmin=20, xmax=50, ymin=0, ymax=1900), fill="darkgreen", alpha=.002) +
+  geom_rect(aes(xmin=50, xmax=80, ymin=0, ymax=1900), fill="red", alpha=.002) +
+  geom_rect(aes(xmin=50, xmax=80, ymin=-1500, ymax=0), fill="yellow", alpha=.002)
+
+
+grid.arrange(ptr15,ptr17,ptr19,ncol=1)
+
+
 ```
 
-There is a strong negative linear correlation (-.79 and -.86) across both years. Both tails, in the negative and positive side, show different patterns.
+
 
 ``` {r, cora}
+
 cora<-ptr_2019_2015.anova%>%group_by(year.ptr)%>%
   do(cor=cor(.$ptr.c,.$teach.surplus.ideal.distr,use="pairwise"))
 
-pander(cora,
-             style = "simple",
-      caption = "Correlation PTR and teacher ideal distribution by council")
+pander(cora,digits=2,
+       style = "simple",
+       caption = "Correlation PTR and ideal teacher distribution by council")
 
 ```
 
-There is a very strong correlation between average PTR and share of schools with PTR above 50 per council,as shown in the following graph: .95 and .97 in 2015 and 2017. 
 
-``` {r, plot share.sch.not.accept and ptr.c, warning=F,message=F}
+``` {r, cora2, warning=F,message=F}
 
 cora2<-ptr_2019_2015.anova%>%group_by(year.ptr)%>%
   do(cor=cor(.$ptr.c,.$share.sch.not.accept,use="pairwise"))
 
-pander(cora2,style = "simple",
-      caption = "Correlation PTR and share of schools above PTR >50")
+pander(cora2,style = "simple",digits=2,
+       caption = "Correlation PTR and share of schools above PTR >50")
+```
 
 
-ptr_2019_2015.anova %>% #filter(year.ptr==2015)%>%
-  ggplot()+
- geom_point(aes(x=ptr.c,y=share.sch.not.accept,group=year.ptr,colour=year.ptr)) +
-  scale_color_manual(values = c("2015" = "darkblue", "2019" = "darkorange"))+
-         ggtitle("Average PTR and Share of schools PTR > 50")+
-  scale_y_continuous(breaks = seq(0,1,.2))+xlab("average ptr per council")+
-  ylab("fraction of schools over PTR > 50")+
-  scale_x_continuous(breaks = seq(20,80,10))+
-  geom_vline(xintercept=35,linetype="dashed", color = "darkred")+
-    geom_vline(xintercept=50,linetype="dashed", color = "darkred") #+
-  #geom_rect(aes(xmin=25, xmax=50, ymin=0, ymax=1700), fill="darkgreen", alpha=.002) +
- # geom_rect(aes(xmin=50, xmax=80, ymin=0, ymax=1700), fill="red", alpha=.002) +
- # geom_rect(aes(xmin=50, xmax=80, ymin=-1500, ymax=0), fill="yellow", alpha=.002) 
+``` {r, nope}
+
+#ptr_2019_2015.anova %>% #filter(year.ptr==2015)%>%   ggplot()+ geom_point(aes(x=ptr.c,y=share.sch.not.accept,group=year.ptr,                colour=as.factor(year.ptr))) +
+#scale_color_manual(values = c("2015" = "darkblue", "2019" = "darkorange"))+         ggtitle("Average PTR and Share of schools PTR > 50")+  scale_y_continuous(breaks = seq(0,1,.2))+xlab("average ptr per council")+  ylab("fraction of schools over PTR > 50")+  scale_x_continuous(breaks = seq(20,80,10))+
+#geom_vline(xintercept=35,linetype="dashed", color = "darkred")+    geom_vline(xintercept=50,linetype="dashed", color = "darkred") #+
+#geom_rect(aes(xmin=25, xmax=50, ymin=0, ymax=1700), fill="darkgreen", alpha=.002) +
+# geom_rect(aes(xmin=50, xmax=80, ymin=0, ymax=1700), fill="red", alpha=.002) +
+# geom_rect(aes(xmin=50, xmax=80, ymin=-1500, ymax=0), fill="yellow", alpha=.002) 
 
 ```
 
-Turning to the analysis of PBR, we model a mixed-effects ANOVA to account for between- and within- council mean PTR differences. Onyl the year year and the interaction between year and DLI amount are significant.The relative magnitudes of the sums of squares indicates that the year term explains much more variation of PTR than the interaction term. Plotting the interaction predicted values we observe differences in terms of PTR across years when councils receive smaller values, which become insignificant later. To estimate differences, we use linear mixed-effects models, which are summarised below.
-
-```{r anovas,  warning=F,message=F}
-
-ptr_2019_2015.anova<-ptr_2019_2015.anova  %>%left_join(lgacontrols)
-
-ptr_2019_2015.anova<-ptr_2019_2015.anova%>%
-  full_join(payments_alldlrs.c,by="council") %>% filter(DLI==4.2) # ptr is 2015 and 2019 // payment_alldlrs is 2016-2019
-
-ptr_2019_2015.anova$council<-as.factor(ptr_2019_2015.anova$council)
-
-ptr_2019_2015.anova$am.st<-ptr_2019_2015.anova$Amount.t/ptr_2019_2015.anova$std.tot
-
-ptr_2019_2015.anova$am.tea<-ptr_2019_2015.anova$Amount.t/ptr_2019_2015.anova$teach.tot
-
-ptr_2019_2015.anova$dropout_uw2015_pct<-as.numeric(ptr_2019_2015.anova$dropout_uw2015_pct)
-ptr_2019_2015.anova$neverenrol_uw2015_pct<-as.numeric(ptr_2019_2015.anova$neverenrol_uw2015_pct)
-
-##
-
-model  <- lm(ptr.c ~ Amount.t*year.ptr+council,
-             data = ptr_2019_2015.anova)
+## Inferential analysis
 
 
-# Create a QQ plot of residuals
-#ggqqplot(residuals(model))
+```{r,schoollevel, cache=T}
 
-anova.amount<-aov(ptr.c ~ Amount.t*year.ptr+Error(council/year.ptr), data=ptr_2019_2015.anova,type=3)
+ptr_2019_2015.anova.id<-  ptr_2019_2017_2015 %>% 
+  filter(!(`Total Primary` <= 0 | `Total Teachers` <=0  | PTR <= 0))%>%
+  dplyr::select(id,year,`Total Primary`,`Total Teachers`,PTR,COUNCIL) %>%group_by(year)%>%
+  mutate(pt=scale(PTR))%>% group_by(id)%>%
+     mutate(diffence.school.ptr=  pt - dplyr::lag(pt,order_by = year)) %>% group_by(year)%>%
+      mutate(outlier = case_when (abs(pt - mean(pt)) > 3*sd(pt) ~ "out",
+           T ~ "no")) %>% ungroup()%>%
+       mutate(outlier2 = case_when (abs(diffence.school.ptr) > 3 |  pt < -2 ~ "out",
+           T ~ "no")) %>% filter(outlier == "no" & outlier2 =="no") %>% 
+    group_by(id) %>%  filter(n()>2 ) %>%
+  mutate(share.ptr = case_when(PTR > 50    ~ 1,
+                               PTR < 50    ~ 0))
 
-#pander(anova_stats(anova.amount))
-#summary(anova.amount)
+summary(ptr_2019_2015.anova.id$PTR)
 
-lmer.amount<-lmer(ptr.c ~ Amount.t*year.ptr+(1|council)-1, data=ptr_2019_2015.anova)
+ptr_2019_2015.anova.id<-ptr_2019_2015.anova.id %>%group_by(id,COUNCIL)%>%
+  mutate(difference.council.ptr= PTR - dplyr::lag(PTR,order_by = year),          
+          dif.std=`Total Primary`-dplyr::lag(`Total Primary`,order_by = year),
+         dif.tch=`Total Teachers`-dplyr::lag(`Total Teachers`,order_by =year))
 
-pander(anova(lmer.amount),style = "simple",
-      caption = "Analysis of Variance - Type 3")
+ptr_2019_2015.anova.id<- ptr_2019_2015.anova.id %>% rationalize() # remove Inf
 
-a<-summary(lmer.amount)$coefficients
+colnames(ptr_2019_2015.anova.id)[2]<-"year.ptr"
 
-pander(a,style = "simple",
-      caption = "Model parameters")
+ptr.pbr.id<-ptr_2019_2015.anova.id  %>% 
+  left_join(lgacontrols,by=c("COUNCIL"="council")) 
 
-sjPlot::plot_model(lmer.amount,type="int")
+ptr.pbr.id<-ptr.pbr.id%>%
+  full_join(payments_alldlrs.c,by=c("COUNCIL"="council")) %>% filter(DLI==4.2) # ptr is 2015 and 2019 // payment_alldlrs is 2016-2019
+
+ptr.pbr.id$COUNCIL<-as.factor(ptr.pbr.id$COUNCIL)
+ptr.pbr.id$am.st<-ptr.pbr.id$Amount.t/ptr.pbr.id$`Total Primary`
+ptr.pbr.id$am.tea<-ptr.pbr.id$Amount.t/ptr.pbr.id$`Total Teachers`
+ptr.pbr.id$dropout_uw2015_pct<-as.numeric(ptr.pbr.id$dropout_uw2015_pct)
+ptr.pbr.id$neverenrol_uw2015_pct<-as.numeric(ptr.pbr.id$neverenrol_uw2015_pct)
+ptr.pbr.id$year.ptr<-as.factor(ptr.pbr.id$year.ptr)
+
+#summary(ptr.pbr.id$PTR)
 
 ```
 
-We also normalise councils' received amounts by student, such as in $amount/student$ and run the same ANOVA model. In this case, all terms, including the DLI amount, are significant, while the sum of squares suggest the year term is relatively higher in terms of explaining PTR. The  amount/student estimate is significant and shows a negative sign, which suggests an association between amount/student and reducing PTR.
+### School level
 
-``` {r, am.std anova, warning=F,message=F}
+Turning to the analysis of PBR, we model multilevel mixed-effect regressions allowing for random intercepts and slopes vary at provinces. These models are known as conditional growth curves and have the advantage of allowing variance occur within clusters and over time.  All parameters are significant (p<.05). This models are similar to  mixed-effects ANOVA to account for between- and within- clustered differences. The equation is written as:
 
-### am.std
+\begin{align}
+Y_{ij} &= \beta_{0j} + \beta_{1}x_{amount_{ij}} +  \beta_{2}x_{amount_{ij}} + \dots +\beta_{n}x_{ij}  + \delta_{0i}  + \delta_{1i}x_{j} + \epsilon_{ij}
+\end{align}
 
-model2  <- lm(ptr.c ~ am.st*year.ptr+council,
-             data = ptr_2019_2015.anova)
+where $Y_{ij}$ is the variable of interest of ${i-th}$ district at ${_j}$ year, $\beta_{0j}$ and $\beta_{1}...\beta_{n}$ are the fixed intercept and slopes respectively, $\delta_{0i}$  and $\delta_{1i}$ are the random intercept and slopes for ${i-th}$ Province, and $\epsilon_{ij}$ is the residual. Finally, $x_{ij}$ represents a set of predictors, being of our interest $x_{amount_{ij}}$ the ammount of money received for the DLI 4.2 and $x_{ptr_{ij}}$, a dummy variable identifying districts with a PTR > 50 in 2015. 
 
-# Create a QQ plot of residuals
-#ggqqplot(residuals(model2))
+While the interaction between $x_{amount_{ij}}$ and $x_{ptr_{ij}}$ is of our main interest as predicting changes on PTR, we perform our analysis starting by studying each term separately and adjusting for each other in Models (1)-(3). Model (4) shows a statistically significant interaction between year (in relationship to baseline 2015) and the total amount received, associated with a decrease of PTR. As values are presented as z-scores, parameters are considered small effect sizes (-.14 and -.07). Descriptive statistics of the database is found in Appendix.
 
 
-anova.am.st<-aov(ptr.c ~ am.st*year.ptr+Error(council/(Amount.t*year.ptr)), data=ptr_2019_2015.anova,type=3)
+``` {r, anovaid, cache=T}
 
-#kable(anova_stats(anova.am.st),format = "latex")
+#variable.names(ptr.pbr.id)
 
-#summary(anova.am.st)
 
-lmer.am.st<-lmer(ptr.c ~ am.st*year.ptr+(1|council)-1, data=ptr_2019_2015.anova)
+fit0<-lmer(scale(PTR) ~ scale(Amount.t) +(year.ptr|COUNCIL),data=ptr.pbr.id,REML = T,
+           control=lmerControl(optimizer="Nelder_Mead", optCtrl=list(maxfun=1e4)))
 
-pander(anova(lmer.am.st),style = "simple",
-      caption = "Analysis of Variance - Type 3")
+fit1<-lmer(scale(PTR) ~ year.ptr + (year.ptr|COUNCIL),data=ptr.pbr.id,REML = T,
+           control=lmerControl(optimizer="Nelder_Mead", optCtrl=list(maxfun=1e4)))
 
-b<-summary(lmer.am.st)$coefficients
-pander(b,style = "simple",
-      caption = "Model parameters")
+fit2<-lmer(scale(PTR) ~ scale(Amount.t)+year.ptr  + (year.ptr|COUNCIL),data=ptr.pbr.id,REML = T,
+           control=lmerControl(optimizer="Nelder_Mead", optCtrl=list(maxfun=1e4)))
 
-sjPlot::plot_model(lmer.am.st,type="int")
+fit3<-lmer(scale(PTR) ~ scale(Amount.t)*year.ptr + (year.ptr|COUNCIL),data=ptr.pbr.id,REML = T,
+           control=lmerControl(optimizer="Nelder_Mead", optCtrl=list(maxfun=1e4)))
+
+stargazer(fit0,fit1,fit2,fit3, type="text",ci=T)
+
+
+#plot_model(fit3,type="int",terms = c("Amount.t","year.ptr"))
+
+
 ```
 
+We also normalised councils' received amounts by student, such as in $amount/student$ and run the same models. Coefficients for $amount/student$ are consistently statistically significant showing a negative sign, which suggests an association between an increase of amount/student and time and the reduction of PTR. Model (4) shows interactions with statistical significance although small effects (less than .01 z-scores).
+
+```{r, fit2, cache=T}
+
+fit4<-lmer(scale(PTR) ~ scale(am.st) + scale(Amount.t) + (year.ptr|COUNCIL),data=ptr.pbr.id,REML = T,
+           control=lmerControl(optimizer="Nelder_Mead", optCtrl=list(maxfun=1e4)))
+
+fit5<-lmer(scale(PTR) ~ year.ptr +   scale(Amount.t)+ (year.ptr|COUNCIL),data=ptr.pbr.id,REML = T,
+           control=lmerControl(optimizer="Nelder_Mead", optCtrl=list(maxfun=1e4)))
+
+fit6<-lmer(scale(PTR) ~ scale(am.st)+year.ptr +   scale(Amount.t)+ (year.ptr|COUNCIL),data=ptr.pbr.id,REML = T,
+           control=lmerControl(optimizer="Nelder_Mead", optCtrl=list(maxfun=1e4)))
+
+fit7<-lmer(scale(PTR) ~ scale(am.st)*year.ptr +  scale(Amount.t)+ (year.ptr|COUNCIL),data=ptr.pbr.id,REML = T,
+           control=lmerControl(optimizer="Nelder_Mead", optCtrl=list(maxfun=1e4)))
+
+stargazer(fit4,fit5,fit6,fit7, type="text", ci=T)
+
+#ptr.pbr.id %>%   ggplot() +  aes(x = am.st, y = PTR, group = year.ptr, color = year.ptr) +   geom_point( alpha = .7) +     geom_smooth(method = "lm")
+
+```
+
+
+
+```{r, prepanova}
+
+### Council level
+
+ptr.pbr<-ptr_2019_2015.anova  %>% 
+  left_join(lgacontrols,by=c("COUNCIL"="council"))
+
+ptr.pbr<-ptr.pbr%>%
+  full_join(payments_alldlrs.c,by=c("COUNCIL"="council")) %>% filter(DLI==4.2) # ptr is 2015 and 2019 // payment_alldlrs is 2016-2019
+
+ptr.pbr$COUNCIL<-as.factor(ptr.pbr$COUNCIL)
+ptr.pbr$am.st<-ptr.pbr$Amount.t/ptr.pbr$std.tot
+ptr.pbr$am.tea<-ptr.pbr$Amount.t/ptr.pbr$teach.tot
+ptr.pbr$dropout_uw2015_pct<-as.numeric(ptr.pbr$dropout_uw2015_pct)
+ptr.pbr$neverenrol_uw2015_pct<-as.numeric(ptr.pbr$neverenrol_uw2015_pct)
+ptr.pbr$year.ptr<-as.factor(ptr.pbr$year.ptr)
+
+```
+
+### Additional analysis
+
+We focus on the analysis of possible linkages between good/bad teacher management (our current measure is LGA-level variation in PTR) and other forms of success, including early learning (measured by Uwezo achievement), and primary completion (measured by survival rates). We adjust for sociodemographic and system efficiency characteristics. We can observe although the amount of money is linked to the outcomes in models (1)-(3) in the expected direction (reduction of survival rate and increase of learning scores), PTR does not show a significant association in any model. They are also not significant in models with interactions with Amount of money received by the council.
+
+
+``` {r, star,  cache=T}
+
+#variable.names(ptr.pbr.id)
+
+colnames(ptr.pbr.id)[34]<-"surv19"
+colnames(ptr.pbr.id)[111]<-"surv18"
+colnames(ptr.pbr.id)[112]<-"surv17"
+
+fit8<- lmer (scale(surv19) ~ scale(PTR) + scale(Amount.t)+year.ptr + 
+               year.ptr + scale(`Total Primary`)+scale(`Total Teachers`) + 
+               scale(surv18) + 
+               scale(surv17)+ scale(povertyregion)+
+               +neverenrol_uw2015_pct+
+               (year.ptr|COUNCIL), data=ptr.pbr.id)
+
+fit9<- lmer (scale(uwezo17_kiswahili_competence) ~ scale(PTR) + scale(Amount.t)+year.ptr + 
+               year.ptr + scale(`Total Primary`)+scale(`Total Teachers`) + 
+               scale(surv18) + 
+               scale(surv17)+ scale(povertyregion)+
+               +neverenrol_uw2015_pct+
+               (year.ptr|COUNCIL), data=ptr.pbr.id)
+
+
+fit10 <- lmer (scale(uwezo17_english_competence) ~ scale(PTR) + scale(Amount.t)+year.ptr + 
+               year.ptr + scale(`Total Primary`)+scale(`Total Teachers`) + 
+               scale(surv18) + 
+               scale(surv17)+ scale(povertyregion)+
+               +neverenrol_uw2015_pct+
+               (year.ptr|COUNCIL), data=ptr.pbr.id)
+
+
+fit11 <- lmer (scale(uwezo17_math_competence) ~ scale(PTR) + scale(Amount.t)+year.ptr + 
+               year.ptr + scale(`Total Primary`)+scale(`Total Teachers`) + 
+               scale(surv18) + 
+               scale(surv17)+ scale(povertyregion)+
+               +neverenrol_uw2015_pct+
+               (year.ptr|COUNCIL), data=ptr.pbr.id)
+
+
+stargazer(fit8,fit9,fit10,fit11,type="text",header = F)
+
+```
+
+
+
+
+``` {r, star3, cache=T}
+
+
+
+fit12<- lmer (scale(surv19) ~ scale(PTR) * scale(Amount.t)+year.ptr + 
+               year.ptr + scale(`Total Primary`)+scale(`Total Teachers`) + 
+               scale(surv18) + 
+               scale(surv17)+ scale(povertyregion)+neverenrol_uw2015_pct+
+               (year.ptr|COUNCIL), data=ptr.pbr.id)
+
+fit13<- lmer (scale(uwezo17_kiswahili_competence) ~ scale(PTR) * scale(Amount.t)+year.ptr + 
+               year.ptr + scale(`Total Primary`)+scale(`Total Teachers`) + 
+               scale(surv18) + 
+               scale(surv17)+ scale(povertyregion)+neverenrol_uw2015_pct+
+               (year.ptr|COUNCIL), data=ptr.pbr.id)
+
+
+fit14 <- lmer (scale(uwezo17_english_competence) ~ scale(PTR) * scale(Amount.t)+year.ptr + 
+               year.ptr + scale(`Total Primary`)+scale(`Total Teachers`) + 
+               scale(surv18) + 
+               scale(surv17)+ scale(povertyregion)+neverenrol_uw2015_pct+
+               (year.ptr|COUNCIL), data=ptr.pbr.id)
+
+
+fit15 <- lmer (scale(uwezo17_math_competence) ~ scale(PTR) * scale(Amount.t)+year.ptr + 
+               year.ptr + scale(`Total Primary`)+scale(`Total Teachers`) + 
+               scale(surv18) + 
+               scale(surv17)+ scale(povertyregion)
+               +neverenrol_uw2015_pct+
+               (year.ptr|COUNCIL), data=ptr.pbr.id)
+
+
+stargazer(fit12,fit13,fit14,fit15,type="text",header = F)
+
+```
 
 # DLR 6
 
-## National examns
+We now turn to exploring the association between PBR and learning outcomes, as stated in DLI 6.2. In one sense, DLI 6 could be considered as a remote impact, where RBF can be only understood contributing a small part of gain/loss. As a remote impact, we need to accumulate all the evidence available (money from all DLIs) to try to link it to the analysis. 
 
-```{r, national exams}
+## National exams
 
-combined_school_level_results_sfna_and_psle <- read_excel("C:/Users/LUCAS/Desktop/Tanzania/combined_school_level_results _sfna_and_psle.xlsx")
+First we focus on national exams: PSLE and SFNA. Table \@ref(tab:ta1) presents the number of observations for both exams across 2014-2019. SFNA doesn not present data available in 2014.
+
+```{r, nationalexams, cache=T}
+
+combined_school_level_results_sfna_and_psle <- read.csv("C:\\Users\\LUCAS\\Desktop\\Tanzania\\national_exams\\combined_school_level_results_sfna_and_psle.csv")
+
+combined_school_level_results_sfna_and_psle$candidates<-as.numeric(combined_school_level_results_sfna_and_psle$candidates)
+combined_school_level_results_sfna_and_psle$schoolscore<-as.numeric(combined_school_level_results_sfna_and_psle$schoolscore)
 
 LG_names_for_matching_PSLE_with_the_PTR_and_controls_files <- read_excel("C:/Users/LUCAS/Desktop/Tanzania/LG names for matching PSLE with the PTR and controls files.xlsx")
 
-combined_school_level_results_sfna_and_psle<-combined_school_level_results_sfna_and_psle%>%left_join(LG_names_for_matching_PSLE_with_the_PTR_and_controls_files,by=c("LG"="NECTAlganame"))
 
 #variable.names(combined_school_level_results_sfna_and_psle)
 
-#table(combined_school_level_results_sfna_and_psle$year)
+#variable.names(LG_names_for_matching_PSLE_with_the_PTR_and_controls_files)
 
-#table(combined_school_level_results_sfna_and_psle$exam)
+nationalexams<-combined_school_level_results_sfna_and_psle%>%left_join(LG_names_for_matching_PSLE_with_the_PTR_and_controls_files,by=c("lg"="NECTAlganame"))
 
-#table(combined_school_level_results_sfna_and_psle$year,combined_school_level_results_sfna_and_psle$exam)
+#table(nationalexams$year)
+
+#table(nationalexams$exam)
+
+nationalexams$exam[nationalexams$exam=="psle"] <-"PSLE"
+nationalexams$exam[nationalexams$exam=="sfna "] <-"SFNA"
+
+ta1<-table(nationalexams$year,nationalexams$exam)
 
 #table(combined_school_level_results_sfna_and_psle$candidates)
 
 #table(combined_school_level_results_sfna_and_psle$council)
 
-combined_school_level_results_sfna_and_psle$exam[combined_school_level_results_sfna_and_psle$exam=="psle"]<-"PSLE"
 
-#combined_school_level_results_sfna_and_psle %>% group_by(year,exam,council)%>%  summarise(score=mean(`school score`))
 
-coral<-combined_school_level_results_sfna_and_psle %>% group_by(exam)%>%
-  do(cor=cor(.$candidates,.$`school score`,use="pairwise"))
 
-pander(coral,style="simple",
-      caption = "Correlation between # students and school score")
+#nationalexams %>% group_by(year,exam,council)%>%  summarise(score=mean(schoolscore))
+
+#coral<-nationalexams %>% group_by(exam)%>%   do(cor=cor(.$candidates,.$schoolscore,use="pairwise"))
+
+pander(ta1,style="simple",digits=2,
+       caption = "Observations per year/exam")
 
 ```
 
-```{r, national exams data preparation}
+### PSLE
 
-national<-combined_school_level_results_sfna_and_psle %>%filter(exam=="PSLE")  %>%left_join(lgacontrols)%>%
+```{r, psle}
+
+PSLE<-nationalexams %>%filter(exam=="PSLE")  %>%
+  left_join(lgacontrols) %>%
   filter(council!="error" & council!="missing in NECTA data")
 
 payments_alldlrs.y<-payments_alldlrs %>%
   group_by(council, Year)%>%
   summarise(Amount=sum(Amount,na.rm = T))
 
-national<-national%>%
-  full_join(payments_alldlrs.y,by=c("council","year"="Year"))
+PSLE<-PSLE%>%
+  left_join(payments_alldlrs.y,by=c("council","year"="Year"))
 
 #variable.names(national)
 
 #national%>%group_by(council,year)%>%summarise(a=mean(Amount))%>%ungroup()%>%summarise(b=sum(a,na.rm = T))
 
+#variable.names(PSLE)
 
-```
-
-```{r, descriptive ammount money}
-
-colnames(national)[5]<-"school"
-colnames(national)[7]<-"score"
+colnames(PSLE)[5]<-"school"
+colnames(PSLE)[7]<-"score"
 #
 #national %>%  group_by(council,year) %>%  summarise( am=mean(Amount))%>%ungroup()%>%summarise(ab=sum(am,na.rm = T))
 
-t<-national %>%
+```
+
+We follow the same approach to detect outliers than before, excluding observations with more or less than 3 zscores from mean and differences within schools on time larger than 3SD. Figure \@(fig:psle2) shows the relatively small proportion of excluded observations.
+
+```{r, psle2}
+
+PSLE2<-  PSLE %>% 
+    group_by(year)%>%
+  mutate(pt=scale(score))%>% 
+     group_by(school)%>%
+     mutate(diffence.school=  pt - dplyr::lag(pt,order_by = year)) %>% 
+         group_by(year)%>%
+      mutate(outlier = case_when (abs(pt - mean(pt)) > 3*sd(pt) ~ "out",
+           T ~ "no")) %>% 
+    ungroup()%>%
+       mutate(outlier2 = case_when (abs(diffence.school) > 3 ~ "out",
+           T ~ "no")) %>% mutate(outliers= case_when(
+             outlier=="out" |outlier2=="out" ~ "outlier", T ~ "No")) %>% 
+  filter(outliers=="No")
+
+PSLE %>% 
+    group_by(year)%>%
+  mutate(pt=scale(score))%>% 
+     group_by(school)%>%
+     mutate(diffence.school=  pt - dplyr::lag(pt,order_by = year)) %>% 
+         group_by(year)%>%
+      mutate(outlier = case_when (abs(pt - mean(pt)) > 3*sd(pt) ~ "out",
+           T ~ "no")) %>% 
+    ungroup()%>%
+       mutate(outlier2 = case_when (abs(diffence.school) > 3 ~ "out",
+           T ~ "no")) %>% mutate(outliers= case_when(
+             outlier=="out" |outlier2=="out" ~ "outlier", T ~ "No")) %>%
+  ggplot()+
+  geom_histogram(aes(fill=outliers,x=score,group=outliers),
+                             alpha=.8,bins=500)
+
+```
+
+Figure \@ref(fig:pslecouncilmoney) shows the association  over time between DLR and PSLE scores per year. There is no clear slope suggesting an association between both variables, which is also assessed through a mixed-effects regression model allowing for random intercepts for councils and random slopes for years, where we fail to reject the hypothesis of no association between them. After subsampling to years 2017-2019 we also did not find association.
+
+``` {r, pslecouncilmoney, fig.cap="PSLE average of councils grouped by overall DLR received"}
+
+
+t<-PSLE2 %>% 
   group_by(council,year) %>%
-  mutate(am=mean(Amount,na.rm = T))%>%dplyr::select(council,year,am)%>%distinct()
-         
+  mutate(am=mean(Amount,na.rm = T))%>%dplyr::select(council,year,am) #%>%distinct()
+
 #sum(t$am,na.rm = T)
 
-pander(summary(t$am), style="simple",caption = "Descriptive statistics - Ammount DLR")
-pander(tapply(t$am, t$year, summary), style="simple",caption = "Descriptive statistics - Ammount DLR per year")
+#pander(summary(t$am), digits=2,style="simple",caption = "Descriptive statistics - Ammount DLR")
+
+#pander(tapply(t$am, t$year, summary), digits=2,style="simple",caption = "Descriptive statistics - Ammount DLR per year")
+
+PSLE2 %>% group_by(council,year) %>%filter(year>2015)%>% 
+  summarise(Amount=mean(Amount,na.rm = T),
+                 score=mean(score,na.rm=T))%>%    
+  ggplot()+
+  facet_wrap(~year,scales = "free")+
+  geom_point(aes(Amount,score),alpha=.5)+
+  geom_smooth(aes(Amount,score),method = "lm")
+
 ```
 
-``` {r, plot councils and scores by group of money}
+``` {r,fit16}
 
-national %>% filter(year>2015)%>%
+PSLE2$council<-as.factor(PSLE2$council)
+PSLE2$year<-as.factor(PSLE2$year)
+
+fit16<- lmer(scale(score) ~ scale(Amount) + year + (year|council), data=PSLE2)
+fit16b<- lmer(scale(score) ~ scale(Amount) * year + (year|council), data=PSLE2)
+
+PSLE3 <- PSLE2 %>% filter( year=="2017" | year=="2018" | year=="2019")
+
+fit17<- lmer(scale(score) ~ scale(Amount) + year + (year|council), data=PSLE3)
+fit17b<- lmer(scale(score) ~ scale(Amount) * year + (year|council), data=PSLE3)
+
+stargazer(fit16, fit16b, fit17, fit17b,type = "text")
+
+```
+
+Correlations at council level between average scores of Uwezo (kiswahili, english and math) and PSLE in 2015 and 2017 are week to moderate, with coefficients ranging from .31 to .46.
+
+```{r, c1}
+
+c1<-PSLE2 %>% group_by(council) %>% filter(year=="2015")%>%
+  summarise(uwezo=mean(uwezo15_math_competence,na.rm = T),
+                 score=mean(score,na.rm=T))%>% ungroup () %>%
+  summarise(uwezo15_math=cor(uwezo,score,use = "pairwise"))
+
+
+c2<-PSLE2 %>% group_by(council,year) %>%filter(year=="2017")%>%
+  summarise(uwezo=mean(uwezo17_math_competence,na.rm = T),
+                 score=mean(score,na.rm=T))%>%  ungroup () %>%
+  summarise(uwezo17_math=cor(uwezo,score,use = "pairwise"))
+
+
+c3<-PSLE2 %>% group_by(council,year) %>% filter(year=="2015")%>%
+  summarise(uwezo=mean(uwezo15_english_competence,na.rm = T),
+                 score=mean(score,na.rm=T))%>%  ungroup () %>%
+  summarise(uwezo15_english=cor(uwezo,score,use = "pairwise"))
+
+
+c4<-PSLE2 %>% group_by(council,year) %>%filter(year=="2017")%>%
+  summarise(uwezo=mean(uwezo17_english_competence,na.rm = T),
+                 score=mean(score,na.rm=T))%>%    ungroup () %>%
+  summarise(uwezo17_english=cor(uwezo,score,use = "pairwise"))
+
+c5<-PSLE2 %>% group_by(council,year) %>% filter(year=="2015")%>%
+  summarise(uwezo=mean(uwezo15_kiswahili_competence,na.rm = T),
+                 score=mean(score,na.rm=T))%>%    ungroup () %>%
+  summarise(uwezo15_kiswahili=cor(uwezo,score,use = "pairwise"))
+
+c6<-PSLE2 %>% group_by(council,year) %>%filter(year=="2017")%>%
+  summarise(uwezo=mean(uwezo17_kiswahili_competence,na.rm = T),
+                 score=mean(score,na.rm=T))%>%    ungroup () %>%
+  summarise(uwezo17_kiswahili=cor(uwezo,score,use = "pairwise"))
+
+ca<-cbind(c1,c2,c3,c4,c5,c6)
+
+stargazer(ca,summary = F,type="text",header = F)
+
+```
+
+
+
+### SFNA
+
+
+```{r, sfna1}
+
+sfna<-nationalexams %>%filter(exam=="sfna")  %>%left_join(lgacontrols)%>%
+  filter(council!="error" & council!="missing in NECTA data")
+
+sfna<-sfna%>%
+  full_join(payments_alldlrs.y,by=c("council","year"="Year"))
+
+
+#variable.names(sfna)
+
+colnames(sfna)[5]<-"school"
+colnames(sfna)[7]<-"score"
+
+
+```
+
+We follow the same approach to detect outliers than before, excluding observations with more or less than 3 zscores from mean and differences within schools on time larger than 3SD. Figure \@(fig:snfa2) shows the relatively small proportion of excluded observations.
+
+```{r, snfa2}
+
+sfna2<-  sfna %>% 
+    group_by(year)%>%
+  mutate(pt=scale(score))%>% 
+     group_by(school)%>%
+     mutate(diffence.school=  pt - dplyr::lag(pt,order_by = year)) %>% 
+         group_by(year)%>%
+      mutate(outlier = case_when (abs(pt - mean(pt)) > 3*sd(pt) ~ "out",
+           T ~ "no")) %>% 
+    ungroup()%>%
+       mutate(outlier2 = case_when (abs(diffence.school) > 3 ~ "out",
+           T ~ "no")) %>% mutate(outliers= case_when(
+             outlier=="out" |outlier2=="out" ~ "outlier", T ~ "No")) %>% 
+  filter(outliers=="No")
+
+sfna %>% 
+    group_by(year)%>%
+  mutate(pt=scale(score))%>% 
+     group_by(school)%>%
+     mutate(diffence.school=  pt - dplyr::lag(pt,order_by = year)) %>% 
+         group_by(year)%>%
+      mutate(outlier = case_when (abs(pt - mean(pt)) > 3*sd(pt) ~ "out",
+           T ~ "no")) %>% 
+    ungroup()%>%
+       mutate(outlier2 = case_when (abs(diffence.school) > 3 ~ "out",
+           T ~ "no")) %>% mutate(outliers= case_when(
+             outlier=="out" |outlier2=="out" ~ "outlier", T ~ "No")) %>% ggplot()+ 
+                     geom_histogram(aes(fill=outliers,x=score,group=outliers), 
+                                    alpha=.8,bins=500)
+
+```
+
+Figure \@ref(fig:sfna4) shows the association over time between DLR and SFNA scores per year. There is no clear slope suggesting an association between both variables, which is also assessed through a mixed-effects regression model allowing for random intercepts for councils and random slopes for years, where we fail to reject the hypothesis of no association between them.
+
+``` {r, sfna4, fig.cap="PSLE average of councils grouped by overall DLR received"}
+
+
+t2<-sfna2 %>% 
   group_by(council,year) %>%
-  mutate(am=mean(Amount,na.rm = T),
-          council.i = case_when(am <= 44815 ~ "less<1st",
-                          am >  44815 & am <= 134695  ~ "1st-Mean",
-                          am >  134695 & am <= 187638 ~ "Mean-3rd",
-                          am >  187638  ~ ">3rd")) %>%
-  group_by(council.i,year) %>%
-  summarise(council.mean.school.scores = mean(score,na.rm=T))%>%
-  ggplot()+geom_line(aes(x=year,y=council.mean.school.scores,
-                         group=council.i,
-                         colour=council.i))+theme_bw()+
-  ggtitle("PSLE average of councils grouped by overall DLR received")+
-  ylab("Average of school scores")
+  mutate(am=mean(Amount,na.rm = T))%>%dplyr::select(council,year,am) #%>%distinct()
+
+#sum(t$am,na.rm = T)
+
+#pander(summary(t$am), digits=2,style="simple",caption = "Descriptive statistics - Ammount DLR")
+
+#pander(tapply(t$am, t$year, summary), digits=2,style="simple",caption = "Descriptive statistics - Ammount DLR per year")
+
+sfna2 %>% group_by(council,year) %>% filter(year !="2015")%>% 
+  summarise(Amount=mean(Amount,na.rm = T),
+                 score=mean(score,na.rm=T))%>%    
+  ggplot()+
+  facet_wrap(~year,scales = "free")+
+  geom_point(aes(Amount,score),alpha=.5)+
+  geom_smooth(aes(Amount,score),method = "lm")
+
+```
+
+``` {r,fit22}
+
+sfna2$council<-as.factor(sfna2$council)
+sfna2$year<-as.factor(sfna2$year)
+
+fit18<- lmer(scale(score) ~ scale(Amount) + year + (year|council), data=sfna2)
+fit19<- lmer(scale(score) ~ scale(Amount) * year + (year|council), data=sfna2)
+
+sfna3 <- sfna2 %>% filter( year=="2017" | year=="2018" | year=="2019")
+
+fit20<- lmer(scale(score) ~ scale(Amount) + year + (year|council), data=sfna3)
+fit21<- lmer(scale(score) ~ scale(Amount) * year + (year|council), data=sfna3)
+
+stargazer(fit18,fit19,fit20,fit21,type = "text")
+
+relgrad <- with(fit17b@optinfo$derivs,solve(Hessian,gradient))
+max(abs(relgrad))
+
+#fit 12, 14, 15  .06
+
+```
+
+Correlations at council level between average scores of Uwezo (kiswahili, english and math) and SFNA in 2015 and 2017 are week to moderate, with coefficients ranging from .28 to .47.
+
+```{r, c1s}
+
+c1s<-sfna2 %>% group_by(council) %>% filter(year=="2015")%>%
+  summarise(uwezo=mean(uwezo15_math_competence,na.rm = T),
+                 score=mean(score,na.rm=T))%>% ungroup () %>%
+  summarise(uwezo15_math=cor(uwezo,score,use = "pairwise"))
+
+
+c2s<-sfna2 %>% group_by(council,year) %>%filter(year=="2017")%>%
+  summarise(uwezo=mean(uwezo17_math_competence,na.rm = T),
+                 score=mean(score,na.rm=T))%>%  ungroup () %>%
+  summarise(uwezo17_math=cor(uwezo,score,use = "pairwise"))
+
+
+c3s<-sfna2 %>% group_by(council,year) %>% filter(year=="2015")%>%
+  summarise(uwezo=mean(uwezo15_english_competence,na.rm = T),
+                 score=mean(score,na.rm=T))%>%  ungroup () %>%
+  summarise(uwezo15_english=cor(uwezo,score,use = "pairwise"))
+
+
+c4s<-sfna2 %>% group_by(council,year) %>%filter(year=="2017")%>%
+  summarise(uwezo=mean(uwezo17_english_competence,na.rm = T),
+                 score=mean(score,na.rm=T))%>%    ungroup () %>%
+  summarise(uwezo17_english=cor(uwezo,score,use = "pairwise"))
+
+c5s<-sfna2 %>% group_by(council,year) %>% filter(year=="2015")%>%
+  summarise(uwezo=mean(uwezo15_kiswahili_competence,na.rm = T),
+                 score=mean(score,na.rm=T))%>%    ungroup () %>%
+  summarise(uwezo15_kiswahili=cor(uwezo,score,use = "pairwise"))
+
+c6s<-sfna2 %>% group_by(council,year) %>%filter(year=="2017")%>%
+  summarise(uwezo=mean(uwezo17_kiswahili_competence,na.rm = T),
+                 score=mean(score,na.rm=T))%>%    ungroup () %>%
+  summarise(uwezo17_kiswahili=cor(uwezo,score,use = "pairwise"))
+
+cas<-cbind(c1s,c2s,c3s,c4s,c5s,c6s)
+
+stargazer(cas,summary = F,type="text",header = F)
+
+
+
+```
+
+## Uwezo
+
+
+```{r, uwezo}
+
+lg.uwezo<-read_excel("C:\\Users\\LUCAS\\Desktop\\Tanzania\\list_of_LGs_each_year_uwezo.xlsx")
+
+variable.names(lg.uwezo)
+
+head(lg.uwezo)
+#table(lg.uwezo$id_districtName)
+
+Location_details_TZ_Uwezo2015 <- read_dta("uwezo/Location_details_TZ_Uwezo2015.dta")
 
 ```
 
 
-Fixed effects models at council level - aggregating all money, considering learning outcomes (tests) as a impact.
+```{r, uwe017}
 
-``` {r, plm fe}
+TZ_2017_merged <- read_dta("C:/Users/LUCAS/Desktop/Tanzania/uwezo/uwezo17/2017hh_merged.dta")
 
-nat.concil<-national %>% 
-  group_by(council,year) %>%
-  summarise(am=mean(Amount,na.rm = T),
-          council.i = case_when(am <= 44815 ~ "less<1st",
-                          am >  44815 & am <= 134695  ~ "1st-Mean",
-                          am >  134695 & am <= 187638 ~ "Mean-3rd",
-                          am >  187638  ~ ">3rd"),
-          score=mean(score,na.rm=T))
+#variable.names(TZ_2017_merged)
 
-nat.concil<-nat.concil  %>%left_join(lgacontrols,by="council")
 
-#sum(nat.concil$am,na.rm = T)
+TZ_2017_merged%>%
+  group_by(as.factor(h1301))%>%
+      summarise(kiswahili=mean(kiswahili,na.rm = T),
+                h1702_s1=mean(h1702_s1,na.rm = T),
+                h1702_s2=mean(h1702_s2,na.rm = T),
+                english=mean(english,na.rm = T),
+                h1704_s1=mean(h1704_s1,na.rm = T),
+                h1704_s2=mean(h1704_s2,na.rm = T),
+                math=mean(math,na.rm = T),
+                h1706_h1=mean(h1706_h1,na.rm = T),
+                h1706_h2=mean(h1706_h2,na.rm = T),
+                h1707_p1=mean(h1707_p1,na.rm = T),
+                h1707_p2=mean(h1707_p2,na.rm = T))%>%print(n=16)
 
-plm.fe <- plm(score~am, model = "within", effect = "twoways",
-           data = nat.concil, index = c("council","year"))
-
-summary(plm.fe)
-
-summary(fixef(plm.fe, effect="time"))
+#h1702_s1, h1702_s2, h1704_s1, h1704_s2, h1706_h1, h1706_h2, h1707_p1, h1707_p2 decrease over grades! Requires inverse coding.
 
 
 ```
 
-Random effects models at council level
 
 
-``` {r, random effects}
 
-plm.re <- plm(score~am, model = "random", effect = "twoways",
-           data = nat.concil, index = c("council","year"))
+```{r, uwe15}
 
-summary(plm.re)
 
-punbalancedness(plm.re)
+TZ15_hhld <- read_dta("C:/Users/LUCAS/Desktop/Tanzania/uwezo/uwezo15/TZ15_hhld.dta")
+
+TZ15_school <- read_dta("C:/Users/LUCAS/Desktop/Tanzania/uwezo/uwezo15/TZ15_school.dta")
+                        
+variable.names(TZ15_hhld)
+
+variable.names(TZ15_school)
+
+TZ15_school$eacode<-as.numeric(TZ15_school$eacode)
+TZ15_hhld$eacode<-as.numeric(TZ15_hhld$eacode)
+
+TZ_2015_merged<-TZ15_hhld %>% left_join(TZ15_school)
+
+variable.names(TZ_2015_merged)
+
+```
+
+
+
+```{r, descriptive UWEZO 2015}
+
+TZ_2015_merged%>%
+  group_by(as.factor(grade))%>%
+      summarise(english=mean(english,na.rm = T),
+                english1=mean(english1,na.rm = T),
+                english2=mean(english2,na.rm = T),
+                swahili=mean(swahili,na.rm = T),
+                swahili1=mean(swahili1,na.rm = T),
+                swahili2=mean(swahili2,na.rm = T),
+                math=mean(math,na.rm = T),
+                mathEveryday1=mean(mathEveryday1,na.rm = T),
+                mathEveryday2=mean(mathEveryday2,na.rm = T))%>%print(n=16)
+
+
+#all values increase
+
+# not using bonus
+```
+
+``` {r, merge uwezo}
+
+#variable.names(TZ_2017_merged)
+#variable.names(TZ_2015_merged)
+ 
+#lg.uwezo %>% filter(Year==2015)%>% print(n=10)
+
+#table(TZ_2017_merged$districtname)
+#table(lg.uwezo$id_districtName)
+#table(TZ_2015_merged$id_districtName.x)
+
+TZ_2015_merged<-TZ_2015_merged %>% left_join(lg.uwezo,by=c("id_districtName"="id_districtName"))
+
+TZ_2017_merged<-TZ_2017_merged %>% inner_join(lg.uwezo,by=c("districtname"="id_districtName"))
+
+colnames(TZ_2017_merged)[180]<-"grade"
 
 #
 
-#variable.names(nat.concil)
-nat.concil$dropout_uw2015_pct<-as.numeric(nat.concil$dropout_uw2015_pct)
+table(TZ_2015_merged$council)
+table(TZ_2017_merged$council)
 
 
-```
+uw17<-TZ_2017_merged %>% filter(!is.na(kiswahili) & !is.na(english) & !is.na(math)) %>%
+  dplyr::select(kiswahili,english,math,grade,sex,age,council)
 
-Random effects models adding covariates (in lme4 - more flexible) - models don't converge
+uw15<- TZ_2015_merged %>%  filter(!is.na(swahili) & !is.na(english) & !is.na(math)) %>%
+  dplyr::select(swahili,english,math,grade,gender,age,council)
 
-``` {r, using linear lme4}
+variable.names(uw15)
+variable.names(uw17)
+
+colnames(uw15)[1]<-"kiswahili"
+colnames(uw15)[5]<-"sex"
+
+uw15<-remove_all_labels(uw15)
+uw17<-remove_all_labels(uw17)
+
+uw15$year<-0
+uw17$year<-1
+
+uwezo <- rbind( uw17 ,  uw15)
+
+uwezo%>%group_by(year)%>%summarise(n=n())
+
+uwezo.ag<- uwezo %>% 
+  group_by(council,year,sex,grade) %>%
+          summarise(kiswahili = mean (kiswahili , na.rm=T,
+                                       english = mean(english,na.rm=T),
+                                                            math = mean(math,na.rm=T)))
+
+table(payments_alldlrs.y$Year)
+
+payments_alldlrs.total<-payments_alldlrs.y %>%group_by(council)%>%
+  summarise(Amount.Total=sum(Amount,na.rm=T))
+
+uwezo.payments<-uwezo.ag%>%
+  left_join(payments_alldlrs.total,by="council") 
+
 #
-score.re.c<- lmer(score~am+year+pop2019+urbrur+povertyregion+dropout_uw2015_pct+
-                      (1+year|council),
-                 data=nat.concil)
 
-summary(score.re.c)
+uwezo.payments$council<- as.factor(uwezo.payments$council)
+
+table(uwezo.payments$council,uwezo.payments$year)
+
+table(uwezo.payments$council,uwezo.payments$grade)
+
+table(uwezo.payments$council,uwezo.payments$sex)
 
 
+library(censReg)
+
+fit1.censored<-censReg(scale(kiswahili) ~ as.factor(year) + scale(Amount.Total) + scale(grade) + 
+             as.factor(sex),
+           data=subset(uwezo.payments,grade<11),left = 0,right=5)
+
+summary(fit1.censored)
+
+library(VGAM)
+
+summary(m <- vglm(scale(kiswahili) ~ as.factor(year) + scale(Amount.Total) + scale(grade) + 
+             as.factor(sex),
+           data=subset(uwezo.payments,grade<11), tobit(Upper = 5)))
+
+
+
+ggplot(uwezo.payments)+ geom_point(aes(Amount.Total,kiswahili),alpha=.3)
 
 ```
 
+
+# Conclusions
+
+- Data quality: 
+
+  - data usually robust, with small number of unexpected outliers
+
+- Inference:
+
+  - Multilevel modelling accounting for clusters (council) and time
+  
+  - Subsampling to avoid extreme measurement errors.
+  
+  - Association of reduction of PTR and DLI ammount received over time. No evidence of association on survival rates or Uwezo scores (as early assessments)
+  
+  - No evidence of association of whole DLI ammounts and learning scores
+  
+  - Limitations: not a counterfactual analysis, data quality problems (ghosts teachers and students impossible to assess at province level)
+
+# Apendix
+
+```{r, sumptrpbrid, cache=T}
+
+summaryptr.pbr.id<-ptr.pbr.id%>% dplyr::select(PTR,Amount.t,`Total Primary`,`Total Teachers`,surv19,surv18,surv17,povertyregion,neverenrol_uw2015_pct)
+
+
+stargazer(as.data.frame(summaryptr.pbr.id),summary = T,header = F,type = "text",size ="small")
+
+summarypsle2<-PSLE2 %>% dplyr::select(score, year)
+
+stargazer(as.data.frame(summarypsle2),summary = T,header = F,type = "text",size ="small")
+
+
+summarysfna2<-sfna2 %>% dplyr::select(score, year)
+
+stargazer(as.data.frame(summarysfna2),summary = T,header = F,type = "text",size ="small")
+
+```

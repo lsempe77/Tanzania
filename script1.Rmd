@@ -58,16 +58,9 @@ library(performance)
 library(hablar)
 library(ggthemes)
 library(haven)
+library(flextable)
 
 options(scipen = 2)
-
-```
-
-```{r,panderopt}
-
-panderOptions('digits',2)
-
-panderOptions('table.continues',F)
 
 ```
 
@@ -159,9 +152,7 @@ pay2<-payments_alldlrs%>%filter(DLI==4.2)%>%group_by(Year)%>%
             SD.Amount = sd(Amount),
             `Councils not receiveing`= sum(Amount == 0))
 
-pander(pay2, style = "simple",
-       caption = "DLI 4.2 payments per year - Descriptive statistics")            
-
+flextable(pay2)
 ```
 
 # DLR 4 - Pupil teacher ratio 
@@ -170,7 +161,7 @@ pander(pay2, style = "simple",
 
 As DLR 4 payments are linked to reaching the the acceptable cutoff on PTR, there is a risk of endogeneity/reverse causality on the analysis.
 
-16,631 schools surveyed in 2015 were matched to 2019 schools, of which 173 did not have teacher counts and 137 of those did not have pupil counts. As a result 96% of the national total enrolment in 2015 is placed in one of the 16,457 matched schools. Songwe LGA was dropped due to a lack of identifiable 2015 schools. 17,352 schools are present in 2017 and 17,792        are found in 2019. Aggregated PTR (without dealing with outliers) has increased over time from 46.2 in 2015 to 54.4 in 2019, while the distribution remains similar over time (see Table \@ref(tab:sum1)).
+16,631 schools surveyed in 2015 were matched to 2019 schools, of which 173 did not have teacher counts and 137 of those did not have pupil counts. As a result 96% of the national total enrolment in 2015 is placed in one of the 16,457 matched schools. Songwe LGA was dropped due to a lack of identifiable 2015 schools. 17,352 schools are present in 2017 and 17,792 are found in 2019. Aggregated PTR (without dealing with outliers) has increased over time from 46.2 in 2015 to 54.4 in 2019, while the distribution remains similar over time (see Table \@ref(tab:sum1)).(#\tab:sum1)
 
 ```{r, sum1, warning=F,message=F, cache=T}
 
@@ -216,7 +207,7 @@ ptr_2019_2017_2015 <- read_excel("C:/Users/LUCAS/Desktop/Tanzania/Tanzania.git/p
 ptr_2019_2017_2015<-ptr_2019_2017_2015 %>% filter(year!="2017_alt")%>%
   mutate(year=replace(year, year=="2017_match_DLR", "2017"))
 
-sum1<-ptr_2019_2017_2015 %>%  filter_all(all_vars(!is.infinite(.)))%>%
+sum<-ptr_2019_2017_2015 %>%  filter_all(all_vars(!is.infinite(.)))%>%
   filter(!(`Total Primary` <= 0 | `Total Teachers` <= 0 | PTR <= 0))%>%
 # group_by(id)%>%  filter(n()>2)%>%
   group_by(year) %>% 
@@ -225,9 +216,7 @@ sum1<-ptr_2019_2017_2015 %>%  filter_all(all_vars(!is.infinite(.)))%>%
             PTR.mean=mean(PTR,na.rm=T),
             PTR.sd=sd(PTR,na.rm = T)) 
 
-pander(sum1,
-       style = "simple",
-       caption = "Summary PTR with outliers")
+flextable(sum)
 
 
 ```
